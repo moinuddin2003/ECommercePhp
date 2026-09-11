@@ -132,7 +132,7 @@
                 <nav class="mobile-nav">
                     <ul class="mobile-menu">
                         <li class="active">
-                            <a href="index.html">Home</a>
+                            <a href="index.php">Home</a>
 
                             <ul>
                                 <li><a href="index-1.html">01 - furniture store</a></li>
@@ -162,11 +162,11 @@
                             </ul>
                         </li>
                         <li>
-                            <a href="category.html">Shop</a>
+                            <a href="category.php">Shop</a>
                             <ul>
                                 <li><a href="category-list.html">Shop List</a></li>
                                 <li><a href="category-2cols.html">Shop Grid 2 Columns</a></li>
-                                <li><a href="category.html">Shop Grid 3 Columns</a></li>
+                                <li><a href="category.php">Shop Grid 3 Columns</a></li>
                                 <li><a href="category-4cols.html">Shop Grid 4 Columns</a></li>
                                 <li><a href="category-boxed.html"><span>Shop Boxed No Sidebar<span
                                                 class="tip tip-hot">Hot</span></span></a></li>
@@ -181,9 +181,9 @@
                             </ul>
                         </li>
                         <li>
-                            <a href="product.html" class="sf-with-ul">Product</a>
+                            <a href="products.php" class="sf-with-ul">Product</a>
                             <ul>
-                                <li><a href="product.html">Default</a></li>
+                                <li><a href="products.php">Default</a></li>
                                 <li><a href="product-centered.html">Centered</a></li>
                                 <li><a href="product-extended.html"><span>Extended Info<span
                                                 class="tip tip-new">New</span></span></a></li>
@@ -267,7 +267,7 @@
                                 <li><a href="elements-typography.html">Typography</a></li>
                                 <li><a href="elements-titles.html">Titles</a></li>
                                 <li><a href="elements-banners.html">Banners</a></li>
-                                <li><a href="elements-product-category.html">Product Category</a></li>
+                                <li><a href="elements-product-category.php">Product Category</a></li>
                                 <li><a href="elements-video-banners.html">Video Banners</a></li>
                                 <li><a href="elements-buttons.html">Buttons</a></li>
                                 <li><a href="elements-accordions.html">Accordions</a></li>
