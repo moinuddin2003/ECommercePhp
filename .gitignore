@@ -1,0 +1,27 @@
+# Database & Environment Credentials
+config/database.php
+.env
+*.env
+
+# User Uploads (Ignore uploaded product/category images, but keep folders)
+public/uploads/products/*
+!public/uploads/products/.gitkeep
+public/uploads/categories/*
+!public/uploads/categories/.gitkeep
+
+# IDE / Code Editor Settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+# Logs & Temporary Files
+*.log
+tmp/
