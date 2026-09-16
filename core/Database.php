@@ -1,94 +1,115 @@
 <?php
+/**
+ * core/Database.php
+ * ------------------------------------------------
+ * A small wrapper around mysqli so every page can run
+ * queries in ONE line, instead of repeating
+ * prepare/bind/execute every time.
+ *
+ * IMPORTANT: This still uses prepared statements behind
+ * the scenes. Never build SQL by concatenating $_GET or
+ * $_POST values directly into a query string — always
+ * pass them through $params here instead. That's what
+ * stops SQL injection.
+ *
+ * USAGE EXAMPLES (once you have $db = new Database($conn);):
+ *
+ *   // SELECT multiple rows
+ *   $products = $db->fetchAll(
+ *       "SELECT * FROM products WHERE category_id = ?",
+ *       [$categoryId],
+ *       'i'   // i = integer, s = string, d = double
+ *   );
+ *
+ *   // SELECT a single row
+ *   $user = $db->fetchOne(
+ *       "SELECT * FROM users WHERE email = ?",
+ *       [$email],
+ *       's'
+ *   );
+ *
+ *   // INSERT (returns the new row's id)
+ *   $newId = $db->insert(
+ *       "INSERT INTO categories (name, slug) VALUES (?, ?)",
+ *       [$name, $slug],
+ *       'ss'
+ *   );
+ *
+ *   // UPDATE / DELETE
+ *   $db->execute(
+ *       "UPDATE products SET stock = ? WHERE id = ?",
+ *       [$newStock, $productId],
+ *       'ii'
+ *   );
+ */
 
 class Database
 {
-    private $connection;
+    private $conn;
 
-    public function __construct()
+    public function __construct($connection)
     {
-        // Connection error par warning ki jagah Exception throw karega
-        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
-        // Configuration load karein
-        $config = require __DIR__ . '/../config/database.php';
-
-        try {
-            $this->connection = new mysqli(
-                $config['host'],
-                $config['username'],
-                $config['password'],
-                $config['dbname'],
-                $config['port']
-            );
-
-            // Special characters aur emojis ke liye charset set karein
-            $this->connection->set_charset($config['charset']);
-
-        } catch (mysqli_sql_exception $e) {
-            die("Database Connection Error: " . $e->getMessage());
-        }
+        $this->conn = $connection;
     }
 
     /**
-     * Prepared statements execution method
-     * 
-     * @param string $sql SQL Query
-     * @param array $params Query Parameters
-     * @param string $types Parameter types e.g., 'ssi' (string, string, int)
-     * @return mysqli_stmt|mysqli_result
+     * Prepares and executes a query, binding params if given.
+     * Returns the mysqli_stmt so callers can pull results/info from it.
      */
-    public function query($sql, $params = [], $types = '')
+    private function run($sql, $params = [], $types = '')
     {
-        $stmt = $this->connection->prepare($sql);
+        $stmt = mysqli_prepare($this->conn, $sql);
 
-        if (!empty($params)) {
-            // Agar types pass nahi kiye toh automatically determine karle
-            if (empty($types)) {
-                $types = '';
-                foreach ($params as $param) {
-                    if (is_int($param)) {
-                        $types .= 'i';
-                    } elseif (is_float($param)) {
-                        $types .= 'd';
-                    } else {
-                        $types .= 's';
-                    }
-                }
-            }
-
-            $stmt->bind_param($types, ...$params);
+        if (!$stmt) {
+            die('Query prepare failed: ' . mysqli_error($this->conn));
         }
 
-        $stmt->execute();
+        if (!empty($params)) {
+            // mysqli_stmt_bind_param needs the args passed one by one,
+            // not as an array — the "..." spreads the array out for us.
+            mysqli_stmt_bind_param($stmt, $types, ...$params);
+        }
 
-        // SELECT query ke liye result object return karega
-        $result = $stmt->get_result();
+        mysqli_stmt_execute($stmt);
 
-        // INSERT/UPDATE/DELETE ke liye statement object return karega
-        return $result !== false ? $result : $stmt;
+        return $stmt;
     }
 
-    // Last inserted ID get karne ke liye helper
-    public function getLastInsertId()
+    /** Run a SELECT and return ALL matching rows as an array of assoc arrays. */
+    public function fetchAll($sql, $params = [], $types = '')
     {
-        return $this->connection->insert_id;
+        $stmt = $this->run($sql, $params, $types);
+        $result = mysqli_stmt_get_result($stmt);
+        $rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt);
+
+        return $rows;
     }
 
-    // Transactions setup (Orders checkout ke waqt kaam ayenge)
-    public function beginTransaction()
+    /** Run a SELECT and return just the FIRST matching row (or null if none). */
+    public function fetchOne($sql, $params = [], $types = '')
     {
-        return $this->connection->begin_transaction();
+        $rows = $this->fetchAll($sql, $params, $types);
+
+        return $rows[0] ?? null;
     }
 
-    public function commit()
+    /** Run an INSERT and return the new row's auto-increment id. */
+    public function insert($sql, $params = [], $types = '')
     {
-        return $this->connection->commit();
+        $stmt = $this->run($sql, $params, $types);
+        mysqli_stmt_close($stmt);
+
+        return mysqli_insert_id($this->conn);
     }
 
-    public function rollback()
+    /** Run an UPDATE / DELETE. Returns how many rows were affected. */
+    public function execute($sql, $params = [], $types = '')
     {
-        return $this->connection->rollback();
+        $stmt = $this->run($sql, $params, $types);
+        $affected = mysqli_stmt_affected_rows($stmt);
+        mysqli_stmt_close($stmt);
+
+        return $affected;
     }
 }
-
-?>

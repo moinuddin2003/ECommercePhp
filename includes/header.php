@@ -1,3 +1,52 @@
+<?php
+/**
+ * includes/header.php
+ * ------------------------------------------------
+ * Expects the INCLUDING page to have already required:
+ *   config/database.php, core/Database.php, core/Session.php, core/Auth.php
+ * and to have created $db = new Database($conn);
+ *
+ * Optional: set $pageTitle before including this file, e.g.
+ *   $pageTitle = 'Shop';
+ */
+
+Session::start();
+$pageTitle = $pageTitle ?? 'Home';
+
+// Categories for the nav + "Browse Categories" dropdown
+$headerCategories = [];
+if (isset($db)) {
+    $headerCategories = $db->fetchAll(
+        "SELECT id, name, slug FROM categories WHERE status = 1 ORDER BY name ASC"
+    );
+}
+
+// Cart summary for the header cart icon (cart itself is built in cart.php)
+// Cart is stored as $_SESSION['cart'][product_id] = quantity
+$cartItems = [];
+$cartCount = 0;
+$cartTotal = 0;
+
+if (!empty($_SESSION['cart']) && isset($db)) {
+    $ids = array_keys($_SESSION['cart']);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $types = str_repeat('i', count($ids));
+
+    $products = $db->fetchAll(
+        "SELECT id, name, slug, price, image FROM products WHERE id IN ($placeholders)",
+        $ids,
+        $types
+    );
+
+    foreach ($products as $product) {
+        $qty = $_SESSION['cart'][$product['id']];
+        $product['quantity'] = $qty;
+        $cartItems[] = $product;
+        $cartCount += $qty;
+        $cartTotal += $qty * $product['price'];
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -8,9 +57,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Molla - Bootstrap eCommerce Template</title>
+    <title><?php echo htmlspecialchars($pageTitle ?? 'Home'); ?> - MyStore</title>
     <meta name="keywords" content="HTML5 Template">
-    <meta name="description" content="Molla - Bootstrap eCommerce Template">
+    <meta name="description" content="MyStore - Online Shop">
     <meta name="author" content="p-themes">
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icons/apple-touch-icon.png">
@@ -74,7 +123,13 @@
                                             </div><!-- End .header-menu -->
                                         </div>
                                     </li>
-                                    <li><a href="#signin-modal" data-toggle="modal">Sign in / Sign up</a></li>
+                                    <?php if (Auth::isLoggedIn()): ?>
+                                        <li><a href="index.php">Hi,
+                                                <?php echo htmlspecialchars(Session::get('user_name')); ?></a></li>
+                                        <li><a href="logout.php">Logout</a></li>
+                                    <?php else: ?>
+                                        <li><a href="#signin-modal" data-toggle="modal">Sign in / Sign up</a></li>
+                                    <?php endif; ?>
                                 </ul>
                             </li>
                         </ul><!-- End .top-menu -->
@@ -99,7 +154,7 @@
                     <div class="header-center">
                         <div class="header-search header-search-extended header-search-visible d-none d-lg-block">
                             <a href="#" class="search-toggle" role="button"><i class="icon-search"></i></a>
-                            <form action="#" method="get">
+                            <form action="products.php" method="get">
                                 <div class="header-search-wrapper search-wrapper-wide">
                                     <label for="q" class="sr-only">Search</label>
                                     <button class="btn btn-primary" type="submit"><i class="icon-search"></i></button>
@@ -111,114 +166,59 @@
                     </div>
 
                     <div class="header-right">
-                        <div class="dropdown compare-dropdown">
-                            <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown"
-                                aria-haspopup="true" aria-expanded="false" data-display="static"
-                                title="Compare Products" aria-label="Compare Products">
-                                <div class="icon">
-                                    <i class="icon-random"></i>
-                                </div>
-                                <p>Compare</p>
-                            </a>
-
-                            <div class="dropdown-menu dropdown-menu-right">
-                                <ul class="compare-products">
-                                    <li class="compare-product">
-                                        <a href="#" class="btn-remove" title="Remove Product"><i
-                                                class="icon-close"></i></a>
-                                        <h4 class="compare-product-title"><a href="products.php">Blue Night Dress</a>
-                                        </h4>
-                                    </li>
-                                    <li class="compare-product">
-                                        <a href="#" class="btn-remove" title="Remove Product"><i
-                                                class="icon-close"></i></a>
-                                        <h4 class="compare-product-title"><a href="products.php">White Long Skirt</a>
-                                        </h4>
-                                    </li>
-                                </ul>
-
-                                <div class="compare-actions">
-                                    <a href="#" class="action-link">Clear All</a>
-                                    <a href="#" class="btn btn-outline-primary-2"><span>Compare</span><i
-                                            class="icon-long-arrow-right"></i></a>
-                                </div>
-                            </div><!-- End .dropdown-menu -->
-                        </div><!-- End .compare-dropdown -->
-
-                        <div class="wishlist">
-                            <a href="wishlist.html" title="Wishlist">
-                                <div class="icon">
-                                    <i class="icon-heart-o"></i>
-                                    <span class="wishlist-count badge">3</span>
-                                </div>
-                                <p>Wishlist</p>
-                            </a>
-                        </div><!-- End .compare-dropdown -->
-
                         <div class="dropdown cart-dropdown">
                             <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown"
                                 aria-haspopup="true" aria-expanded="false" data-display="static">
                                 <div class="icon">
                                     <i class="icon-shopping-cart"></i>
-                                    <span class="cart-count">2</span>
+                                    <span class="cart-count"><?php echo (int) $cartCount; ?></span>
                                 </div>
                                 <p>Cart</p>
                             </a>
 
                             <div class="dropdown-menu dropdown-menu-right">
                                 <div class="dropdown-cart-products">
-                                    <div class="product">
-                                        <div class="product-cart-details">
-                                            <h4 class="product-title">
-                                                <a href="products.php">Beige knitted elastic runner shoes</a>
-                                            </h4>
+                                    <?php if (empty($cartItems)): ?>
+                                        <p class="px-3 py-2 mb-0">Your cart is empty.</p>
+                                    <?php else: ?>
+                                        <?php foreach ($cartItems as $item): ?>
+                                            <div class="product">
+                                                <div class="product-cart-details">
+                                                    <h4 class="product-title">
+                                                        <a
+                                                            href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+                                                    </h4>
 
-                                            <span class="cart-product-info">
-                                                <span class="cart-product-qty">1</span>
-                                                x $84.00
-                                            </span>
-                                        </div><!-- End .product-cart-details -->
+                                                    <span class="cart-product-info">
+                                                        <span
+                                                            class="cart-product-qty"><?php echo (int) $item['quantity']; ?></span>
+                                                        x $<?php echo number_format($item['price'], 2); ?>
+                                                    </span>
+                                                </div><!-- End .product-cart-details -->
 
-                                        <figure class="product-image-container">
-                                            <a href="products.php" class="product-image">
-                                                <img src="assets/images/products/cart/product-1.jpg" alt="product">
-                                            </a>
-                                        </figure>
-                                        <a href="#" class="btn-remove" title="Remove Product"><i
-                                                class="icon-close"></i></a>
-                                    </div><!-- End .product -->
-
-                                    <div class="product">
-                                        <div class="product-cart-details">
-                                            <h4 class="product-title">
-                                                <a href="products.php">Blue utility pinafore denim dress</a>
-                                            </h4>
-
-                                            <span class="cart-product-info">
-                                                <span class="cart-product-qty">1</span>
-                                                x $76.00
-                                            </span>
-                                        </div><!-- End .product-cart-details -->
-
-                                        <figure class="product-image-container">
-                                            <a href="products.php" class="product-image">
-                                                <img src="assets/images/products/cart/product-2.jpg" alt="product">
-                                            </a>
-                                        </figure>
-                                        <a href="#" class="btn-remove" title="Remove Product"><i
-                                                class="icon-close"></i></a>
-                                    </div><!-- End .product -->
+                                                <figure class="product-image-container">
+                                                    <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"
+                                                        class="product-image">
+                                                        <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                                                            alt="<?php echo htmlspecialchars($item['name']); ?>">
+                                                    </a>
+                                                </figure>
+                                                <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>"
+                                                    class="btn-remove" title="Remove Product"><i class="icon-close"></i></a>
+                                            </div><!-- End .product -->
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div><!-- End .cart-product -->
 
                                 <div class="dropdown-cart-total">
                                     <span>Total</span>
 
-                                    <span class="cart-total-price">$160.00</span>
+                                    <span class="cart-total-price">$<?php echo number_format($cartTotal, 2); ?></span>
                                 </div><!-- End .dropdown-cart-total -->
 
                                 <div class="dropdown-cart-action">
-                                    <a href="cart.html" class="btn btn-primary">View Cart</a>
-                                    <a href="checkout.html" class="btn btn-outline-primary-2"><span>Checkout</span><i
+                                    <a href="cart.php" class="btn btn-primary">View Cart</a>
+                                    <a href="checkout.php" class="btn btn-outline-primary-2"><span>Checkout</span><i
                                             class="icon-long-arrow-right"></i></a>
                                 </div><!-- End .dropdown-cart-total -->
                             </div><!-- End .dropdown-menu -->
@@ -240,17 +240,15 @@
                             <div class="dropdown-menu">
                                 <nav class="side-nav">
                                     <ul class="menu-vertical sf-arrows">
-                                        <li class="item-lead"><a href="#">Daily offers</a></li>
-                                        <li class="item-lead"><a href="#">Gift Ideas</a></li>
-                                        <li><a href="#">Beds</a></li>
-                                        <li><a href="#">Lighting</a></li>
-                                        <li><a href="#">Sofas & Sleeper sofas</a></li>
-                                        <li><a href="#">Storage</a></li>
-                                        <li><a href="#">Armchairs & Chaises</a></li>
-                                        <li><a href="#">Decoration </a></li>
-                                        <li><a href="#">Kitchen Cabinets</a></li>
-                                        <li><a href="#">Coffee & Tables</a></li>
-                                        <li><a href="#">Outdoor Furniture </a></li>
+                                        <?php if (empty($headerCategories)): ?>
+                                            <li><a href="products.php">All Products</a></li>
+                                        <?php else: ?>
+                                            <?php foreach ($headerCategories as $cat): ?>
+                                                <li><a
+                                                        href="products.php?category=<?php echo urlencode($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></a>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </ul><!-- End .menu-vertical -->
                                 </nav><!-- End .side-nav -->
                             </div><!-- End .dropdown-menu -->
@@ -260,27 +258,18 @@
                     <div class="header-center">
                         <nav class="main-nav">
                             <ul class="menu sf-arrows">
-                                <li class="megamenu-container active">
-                                    <a href="index.php" class="sf-with-ul">Home</a>
+                                <li class="<?php echo ($pageTitle ?? '') === 'Home' ? 'active' : ''; ?>">
+                                    <a href="index.php">Home</a>
                                 </li>
-                                <li>
-                                    <a href="category.php" class="sf-with-ul">Shop</a>
-
+                                <li class="<?php echo ($pageTitle ?? '') === 'Shop' ? 'active' : ''; ?>">
+                                    <a href="products.php">Shop</a>
                                 </li>
-                                <li>
-                                    <a href="products.php" class="sf-with-ul">Product</a>
-
-                                </li>
-                                <li>
-                                    <a href="#" class="sf-with-ul">Pages</a>
-                                </li>
-                                <li>
-                                    <a href="blog.html" class="sf-with-ul">Blog</a>
-                                </li>
-                                <li>
-                                    <a href="elements-list.html" class="sf-with-ul">Elements</a>
-                                </li>
-                            </ul><!-- End .menu -->
+                                <?php foreach ($headerCategories as $cat): ?>
+                                    <li><a
+                                            href="products.php?category=<?php echo urlencode($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
                         </nav><!-- End .main-nav -->
                     </div><!-- End .header-center -->
 
@@ -291,3 +280,5 @@
                 </div><!-- End .container -->
             </div><!-- End .header-bottom -->
         </header><!-- End .header -->
+
+        <main class="main">
