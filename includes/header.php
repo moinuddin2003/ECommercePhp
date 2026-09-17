@@ -29,12 +29,15 @@ if (isset($db)) {
 $cartItems = isset($db) ? Cart::getItems($db) : [];
 $cartCount = Cart::getCount();
 $cartTotal = Cart::getTotal($cartItems);
+$headerFlashSuccess = Session::flash('success');
+$headerFlashError = Session::flash('error');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 
 <!-- molla/index-4.html  22 Nov 2019 09:53:08 GMT -->
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -68,6 +71,14 @@ $cartTotal = Cart::getTotal($cartItems);
 </head>
 
 <body>
+    <?php if ($headerFlashSuccess || $headerFlashError): ?>
+        <div class="storefront-toast <?php echo $headerFlashError ? 'storefront-toast-error' : 'storefront-toast-success'; ?>"
+            role="status">
+            <i class="<?php echo $headerFlashError ? 'icon-close' : 'icon-check'; ?>"></i>
+            <span><?php echo htmlspecialchars($headerFlashSuccess ?: $headerFlashError); ?></span>
+            <button type="button" class="storefront-toast-close" aria-label="Close notification">&times;</button>
+        </div>
+    <?php endif; ?>
     <div class="page-wrapper">
         <header class="header header-intro-clearance header-4">
             <div class="header-top">
@@ -106,10 +117,11 @@ $cartTotal = Cart::getTotal($cartItems);
                                         </div>
                                     </li>
                                     <?php if (Auth::isLoggedIn()): ?>
-                                    <li><a href="account.php">Hi, <?php echo htmlspecialchars(Session::get('user_name')); ?></a></li>
-                                    <li><a href="logout.php">Logout</a></li>
+                                        <li><a href="account.php">Hi,
+                                                <?php echo htmlspecialchars(Session::get('user_name')); ?></a></li>
+                                        <li><a href="logout.php">Logout</a></li>
                                     <?php else: ?>
-                                    <li><a href="login.php">Sign in / Sign up</a></li>
+                                        <li><a href="login.php">Sign in / Sign up</a></li>
                                     <?php endif; ?>
                                 </ul>
                             </li>
@@ -126,7 +138,7 @@ $cartTotal = Cart::getTotal($cartItems);
                             <span class="sr-only">Toggle mobile menu</span>
                             <i class="icon-bars"></i>
                         </button>
-                        
+
                         <a href="index.php" class="logo">
                             <img src="assets/images/demos/demo-4/logo.png" alt="Molla Logo" width="105" height="25">
                         </a>
@@ -139,7 +151,8 @@ $cartTotal = Cart::getTotal($cartItems);
                                 <div class="header-search-wrapper search-wrapper-wide">
                                     <label for="q" class="sr-only">Search</label>
                                     <button class="btn btn-primary" type="submit"><i class="icon-search"></i></button>
-                                    <input type="search" class="form-control" name="q" id="q" placeholder="Search product ..." required>
+                                    <input type="search" class="form-control" name="q" id="q"
+                                        placeholder="Search product ..." required>
                                 </div><!-- End .header-search-wrapper -->
                             </form>
                         </div><!-- End .header-search -->
@@ -147,7 +160,8 @@ $cartTotal = Cart::getTotal($cartItems);
 
                     <div class="header-right">
                         <div class="dropdown cart-dropdown">
-                            <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-display="static">
+                            <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false" data-display="static">
                                 <div class="icon">
                                     <i class="icon-shopping-cart"></i>
                                     <span class="cart-count"><?php echo (int) $cartCount; ?></span>
@@ -158,29 +172,34 @@ $cartTotal = Cart::getTotal($cartItems);
                             <div class="dropdown-menu dropdown-menu-right">
                                 <div class="dropdown-cart-products">
                                     <?php if (empty($cartItems)): ?>
-                                    <p class="px-3 py-2 mb-0">Your cart is empty.</p>
+                                        <p class="px-3 py-2 mb-0">Your cart is empty.</p>
                                     <?php else: ?>
-                                    <?php foreach ($cartItems as $item): ?>
-                                    <div class="product">
-                                        <div class="product-cart-details">
-                                            <h4 class="product-title">
-                                                <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
-                                            </h4>
+                                        <?php foreach ($cartItems as $item): ?>
+                                            <div class="product">
+                                                <div class="product-cart-details">
+                                                    <h4 class="product-title">
+                                                        <a
+                                                            href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+                                                    </h4>
 
-                                            <span class="cart-product-info">
-                                                <span class="cart-product-qty"><?php echo (int) $item['quantity']; ?></span>
-                                                x $<?php echo number_format($item['price'], 2); ?>
-                                            </span>
-                                        </div><!-- End .product-cart-details -->
+                                                    <span class="cart-product-info">
+                                                        <span
+                                                            class="cart-product-qty"><?php echo (int) $item['quantity']; ?></span>
+                                                        x $<?php echo number_format($item['price'], 2); ?>
+                                                    </span>
+                                                </div><!-- End .product-cart-details -->
 
-                                        <figure class="product-image-container">
-                                            <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>" class="product-image">
-                                                <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>">
-                                            </a>
-                                        </figure>
-                                        <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>" class="btn-remove" title="Remove Product"><i class="icon-close"></i></a>
-                                    </div><!-- End .product -->
-                                    <?php endforeach; ?>
+                                                <figure class="product-image-container">
+                                                    <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"
+                                                        class="product-image">
+                                                        <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                                                            alt="<?php echo htmlspecialchars($item['name']); ?>">
+                                                    </a>
+                                                </figure>
+                                                <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>"
+                                                    class="btn-remove" title="Remove Product"><i class="icon-close"></i></a>
+                                            </div><!-- End .product -->
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div><!-- End .cart-product -->
 
@@ -192,7 +211,8 @@ $cartTotal = Cart::getTotal($cartItems);
 
                                 <div class="dropdown-cart-action">
                                     <a href="cart.php" class="btn btn-primary">View Cart</a>
-                                    <a href="checkout.php" class="btn btn-outline-primary-2"><span>Checkout</span><i class="icon-long-arrow-right"></i></a>
+                                    <a href="checkout.php" class="btn btn-outline-primary-2"><span>Checkout</span><i
+                                            class="icon-long-arrow-right"></i></a>
                                 </div><!-- End .dropdown-cart-total -->
                             </div><!-- End .dropdown-menu -->
                         </div><!-- End .cart-dropdown -->
@@ -204,7 +224,9 @@ $cartTotal = Cart::getTotal($cartItems);
                 <div class="container">
                     <div class="header-left">
                         <div class="dropdown category-dropdown">
-                            <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-display="static" title="Browse Categories">
+                            <a href="#" class="dropdown-toggle" role="button" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false" data-display="static"
+                                title="Browse Categories">
                                 Browse Categories <i class="icon-angle-down"></i>
                             </a>
 
@@ -212,11 +234,13 @@ $cartTotal = Cart::getTotal($cartItems);
                                 <nav class="side-nav">
                                     <ul class="menu-vertical sf-arrows">
                                         <?php if (empty($headerCategories)): ?>
-                                        <li><a href="products.php">All Products</a></li>
+                                            <li><a href="products.php">All Products</a></li>
                                         <?php else: ?>
-                                        <?php foreach ($headerCategories as $cat): ?>
-                                        <li><a href="products.php?category=<?php echo urlencode($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></a></li>
-                                        <?php endforeach; ?>
+                                            <?php foreach ($headerCategories as $cat): ?>
+                                                <li><a
+                                                        href="products.php?category=<?php echo urlencode($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></a>
+                                                </li>
+                                            <?php endforeach; ?>
                                         <?php endif; ?>
                                     </ul><!-- End .menu-vertical -->
                                 </nav><!-- End .side-nav -->
@@ -233,15 +257,14 @@ $cartTotal = Cart::getTotal($cartItems);
                                 <li class="<?php echo ($pageTitle ?? '') === 'Shop' ? 'active' : ''; ?>">
                                     <a href="products.php">Shop</a>
                                 </li>
-                                <?php foreach ($headerCategories as $cat): ?>
-                                <li><a href="products.php?category=<?php echo urlencode($cat['slug']); ?>"><?php echo htmlspecialchars($cat['name']); ?></a></li>
-                                <?php endforeach; ?>
+
                             </ul>
                         </nav><!-- End .main-nav -->
                     </div><!-- End .header-center -->
 
                     <div class="header-right">
-                        <i class="la la-lightbulb-o"></i><p>Clearance<span class="highlight">&nbsp;Up to 30% Off</span></p>
+                        <i class="la la-lightbulb-o"></i>
+                        <p>Clearance<span class="highlight">&nbsp;Up to 30% Off</span></p>
                     </div>
                 </div><!-- End .container -->
             </div><!-- End .header-bottom -->

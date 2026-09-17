@@ -30,65 +30,71 @@ $pageTitle = $product ? $product['name'] : 'Product Not Found';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="container mb-5 mt-4">
-    <?php if (!$product): ?>
+<div class="storefront-page storefront-detail-page">
+    <div class="container mb-5 mt-4">
+        <?php if (!$product): ?>
 
-        <div class="text-center py-5">
-            <h2>Product not found</h2>
-            <p>The product you're looking for doesn't exist or is no longer available.</p>
-            <a href="products.php" class="btn btn-primary">Back to Shop</a>
-        </div>
-
-    <?php else: ?>
-
-        <?php $inStock = (int) $product['stock'] > 0; ?>
-
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
-                    alt="<?php echo htmlspecialchars($product['name']); ?>" class="img-fluid rounded">
+            <div class="text-center py-5">
+                <h2>Product not found</h2>
+                <p>The product you're looking for doesn't exist or is no longer available.</p>
+                <a href="products.php" class="btn btn-primary">Back to Shop</a>
             </div>
 
-            <div class="col-md-6">
-                <div class="product-cat mb-2">
-                    <a
-                        href="products.php?category=<?php echo urlencode($product['category_slug']); ?>"><?php echo htmlspecialchars($product['category_name']); ?></a>
+        <?php else: ?>
+
+            <?php $inStock = (int) $product['stock'] > 0; ?>
+
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-4 mb-md-0">
+                    <div class="detail-image-panel">
+                        <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
+                            alt="<?php echo htmlspecialchars($product['name']); ?>" class="img-fluid">
+                    </div>
                 </div>
 
-                <h1 class="product-title mb-2"><?php echo htmlspecialchars($product['name']); ?></h1>
+                <div class="col-md-6 detail-copy">
+                    <div class="product-cat detail-category mb-3">
+                        <a
+                            href="products.php?category=<?php echo urlencode($product['category_slug']); ?>"><?php echo htmlspecialchars($product['category_name']); ?></a>
+                    </div>
 
-                <div class="product-price mb-3" style="font-size: 1.5rem;">
-                    $<?php echo number_format($product['price'], 2); ?>
+                    <h1 class="detail-title mb-3"><?php echo htmlspecialchars($product['name']); ?></h1>
+
+                    <div class="detail-price mb-4">
+                        $<?php echo number_format($product['price'], 2); ?>
+                    </div>
+
+                    <?php if ($inStock): ?>
+                        <p class="detail-stock detail-stock-available mb-4"><i class="icon-check"></i> In stock
+                            <span>(<?php echo (int) $product['stock']; ?> available)</span></p>
+                    <?php else: ?>
+                        <p class="detail-stock detail-stock-unavailable mb-4"><i class="icon-close"></i> Out of stock</p>
+                    <?php endif; ?>
+
+                    <div class="detail-description mb-4"><?php echo nl2br(htmlspecialchars($product['description'])); ?>
+                    </div>
+
+                    <?php if ($inStock): ?>
+                        <form action="cart.php" method="post" class="detail-cart-form">
+                            <input type="hidden" name="action" value="add">
+                            <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
+
+                            <label for="quantity" class="detail-quantity-label">Quantity</label>
+                            <input type="number" id="quantity" name="quantity" class="detail-quantity-input" value="1" min="1"
+                                max="<?php echo (int) $product['stock']; ?>">
+
+                            <button type="submit" class="detail-cart-button">
+                                <i class="icon-shopping-cart"></i><span>Add to cart</span><i class="icon-long-arrow-right"></i>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <button type="button" class="detail-cart-button" disabled>Out of stock</button>
+                    <?php endif; ?>
                 </div>
-
-                <?php if ($inStock): ?>
-                    <p class="text-success mb-3">In stock (<?php echo (int) $product['stock']; ?> available)</p>
-                <?php else: ?>
-                    <p class="text-danger mb-3">Out of stock</p>
-                <?php endif; ?>
-
-                <p class="mb-4"><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
-
-                <?php if ($inStock): ?>
-                    <form action="cart.php" method="post" class="d-flex align-items-center">
-                        <input type="hidden" name="action" value="add">
-                        <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
-
-                        <label for="quantity" class="sr-only">Quantity</label>
-                        <input type="number" id="quantity" name="quantity" class="form-control mr-3" style="width: 90px;"
-                            value="1" min="1" max="<?php echo (int) $product['stock']; ?>">
-
-                        <button type="submit" class="btn btn-primary btn-round">
-                            <span>Add to Cart</span><i class="icon-long-arrow-right"></i>
-                        </button>
-                    </form>
-                <?php else: ?>
-                    <button type="button" class="btn btn-primary btn-round" disabled>Out of Stock</button>
-                <?php endif; ?>
             </div>
-        </div>
 
-    <?php endif; ?>
-</div><!-- End .container -->
+        <?php endif; ?>
+    </div><!-- End .container -->
+</div><!-- End .storefront-page -->
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

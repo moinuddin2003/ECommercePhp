@@ -31,7 +31,7 @@ $inStock = (int) $product['stock'] > 0;
         </a>
     </figure><!-- End .product-media -->
 
-    <div class="product-body">
+    <div class="product-body storefront-product-body">
         <?php if (!empty($product['category_name'])): ?>
             <div class="product-cat">
                 <a
@@ -48,17 +48,26 @@ $inStock = (int) $product['stock'] > 0;
             $<?php echo number_format($product['price'], 2); ?>
         </div><!-- End .product-price -->
 
-        <?php if ($inStock): ?>
-            <form action="cart.php" method="post" class="mt-2">
-                <input type="hidden" name="action" value="add">
-                <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
-                <input type="hidden" name="quantity" value="1">
-                <button type="submit" class="btn btn-outline-primary-2 btn-sm">
-                    <span>Add to cart</span><i class="icon-long-arrow-right"></i>
+        <div class="product-card-footer">
+            <?php if ($inStock): ?>
+                <form action="cart.php" method="post" class="product-cart-form">
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="product_id" value="<?php echo (int) $product['id']; ?>">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit" class="product-cart-button">
+                        <i class="icon-shopping-cart" aria-hidden="true"></i>
+                        <span>Add to cart</span>
+                    </button>
+                </form>
+            <?php else: ?>
+                <button type="button" class="product-cart-button product-cart-button-disabled" disabled>
+                    <span>Out of stock</span>
                 </button>
-            </form>
-        <?php else: ?>
-            <button type="button" class="btn btn-outline-primary-2 btn-sm" disabled>Out of stock</button>
-        <?php endif; ?>
+            <?php endif; ?>
+            <!-- <a href="product-detail.php?slug=<?php echo urlencode($product['slug']); ?>" class="product-view-button"
+                aria-label="View <?php echo htmlspecialchars($product['name']); ?>">
+                <br>
+            </a> -->
+        </div>
     </div><!-- End .product-body -->
 </div><!-- End .product -->

@@ -118,69 +118,80 @@ $pageTitle = 'Checkout';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="container mb-5 mt-4">
-    <h1 class="title text-center mb-4">Checkout</h1>
-
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
+<div class="storefront-page storefront-checkout-page">
+    <div class="container mb-5 mt-4">
+        <div class="storefront-heading"><span class="eyebrow">Almost there</span>
+            <h1 class="title">Checkout</h1>
+            <p>Securely confirm your delivery and payment details.</p>
         </div>
-    <?php endif; ?>
 
-    <div class="row">
-        <div class="col-md-7 mb-4">
-            <h3>Shipping Details</h3>
-            <form action="checkout.php" method="post">
-                <div class="form-group">
-                    <label for="shipping_address">Shipping Address</label>
-                    <textarea id="shipping_address" name="shipping_address" class="form-control" rows="4"
-                        required><?php echo htmlspecialchars($_POST['shipping_address'] ?? ''); ?></textarea>
+        <?php if (!empty($errors)): ?>
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    <?php foreach ($errors as $error): ?>
+                        <li><?php echo htmlspecialchars($error); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
+        <div class="row checkout-layout">
+            <div class="col-md-7 mb-4">
+                <div class="checkout-panel">
+                    <h3>Shipping details</h3>
+                    <form action="checkout.php" method="post">
+                        <div class="form-group">
+                            <label for="shipping_address">Shipping Address</label>
+                            <textarea id="shipping_address" name="shipping_address" class="form-control" rows="4"
+                                required><?php echo htmlspecialchars($_POST['shipping_address'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="pay_cod" name="payment_method" value="cod"
+                                    class="custom-control-input" checked>
+                                <label class="custom-control-label" for="pay_cod">Cash on Delivery</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="pay_paypal" name="payment_method" value="paypal"
+                                    class="custom-control-input">
+                                <label class="custom-control-label" for="pay_paypal">PayPal</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="cod-submit-btn" class="btn btn-primary btn-round">
+                            <span>Place Order</span><i class="icon-long-arrow-right"></i>
+                        </button>
+
+                        <div id="paypal-button-container" class="mt-3" style="display: none; max-width: 300px;"></div>
+                    </form>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label>Payment Method</label>
-                    <div class="custom-control custom-radio">
-                        <input type="radio" id="pay_cod" name="payment_method" value="cod" class="custom-control-input"
-                            checked>
-                        <label class="custom-control-label" for="pay_cod">Cash on Delivery</label>
-                    </div>
-                    <div class="custom-control custom-radio">
-                        <input type="radio" id="pay_paypal" name="payment_method" value="paypal"
-                            class="custom-control-input">
-                        <label class="custom-control-label" for="pay_paypal">PayPal</label>
-                    </div>
+            <div class="col-md-5">
+                <div class="checkout-summary">
+                    <h3>Order summary</h3>
+                    <p class="summary-caption">Your selected items</p>
+                    <table class="table checkout-summary-table">
+                        <?php foreach ($cartItems as $item): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($item['name']); ?> &times;
+                                    <?php echo (int) $item['quantity']; ?>
+                                </td>
+                                <td class="text-right">$<?php echo number_format($item['subtotal'], 2); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <tr>
+                            <th>Total</th>
+                            <th class="text-right">$<?php echo number_format($cartTotal, 2); ?></th>
+                        </tr>
+                    </table>
                 </div>
-
-                <button type="submit" id="cod-submit-btn" class="btn btn-primary btn-round">
-                    <span>Place Order</span><i class="icon-long-arrow-right"></i>
-                </button>
-
-                <div id="paypal-button-container" class="mt-3" style="display: none; max-width: 300px;"></div>
-            </form>
+            </div>
         </div>
-
-        <div class="col-md-5">
-            <h3>Order Summary</h3>
-            <table class="table">
-                <?php foreach ($cartItems as $item): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($item['name']); ?> &times; <?php echo (int) $item['quantity']; ?>
-                        </td>
-                        <td class="text-right">$<?php echo number_format($item['subtotal'], 2); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                <tr>
-                    <th>Total</th>
-                    <th class="text-right">$<?php echo number_format($cartTotal, 2); ?></th>
-                </tr>
-            </table>
-        </div>
-    </div>
-</div><!-- End .container -->
+    </div><!-- End .container -->
+</div><!-- End .storefront-page -->
 
 <?php if (!empty($cartItems)): ?>
     <script src="https://www.paypal.com/sdk/js?client-id=<?php echo urlencode(PAYPAL_CLIENT_ID); ?>&currency=USD"></script>

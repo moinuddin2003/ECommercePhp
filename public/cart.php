@@ -73,77 +73,90 @@ $pageTitle = 'Your Cart';
 require __DIR__ . '/../includes/header.php';
 ?>
 
-<div class="container mb-5 mt-4">
-    <h1 class="title text-center mb-4">Your Cart</h1>
-
-    <?php $flashSuccess = Session::flash('success'); ?>
-    <?php $flashError = Session::flash('error'); ?>
-    <?php if ($flashSuccess): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars($flashSuccess); ?></div>
-    <?php endif; ?>
-    <?php if ($flashError): ?>
-    <div class="alert alert-danger"><?php echo htmlspecialchars($flashError); ?></div>
-    <?php endif; ?>
-
-    <?php if (empty($cartItems)): ?>
-
-    <div class="text-center py-5">
-        <p>Your cart is empty.</p>
-        <a href="products.php" class="btn btn-primary">Continue Shopping</a>
-    </div>
-
-    <?php else: ?>
-
-    <form action="cart.php" method="post">
-        <input type="hidden" name="action" value="update">
-
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Subtotal</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($cartItems as $item): ?>
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" width="60" class="mr-3">
-                            <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
-                        </div>
-                    </td>
-                    <td>$<?php echo number_format($item['price'], 2); ?></td>
-                    <td>
-                        <input type="hidden" name="product_id[]" value="<?php echo (int) $item['id']; ?>">
-                        <input type="number" name="quantity[]" value="<?php echo (int) $item['quantity']; ?>" min="1" max="<?php echo (int) $item['stock']; ?>" class="form-control" style="width: 80px;">
-                    </td>
-                    <td>$<?php echo number_format($item['subtotal'], 2); ?></td>
-                    <td>
-                        <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>" class="btn btn-sm btn-outline-danger">Remove</a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-
-        <div class="d-flex justify-content-between align-items-center">
-            <button type="submit" class="btn btn-outline-primary-2">Update Cart</button>
-            <h4>Total: $<?php echo number_format($cartTotal, 2); ?></h4>
+<div class="storefront-page storefront-cart-page">
+    <div class="container mb-5 mt-4">
+        <div class="storefront-heading"><span class="eyebrow">Ready when you are</span>
+            <h1 class="title">Your cart</h1>
+            <p>Review your items before you checkout.</p>
         </div>
-    </form>
 
-    <div class="text-right mt-3">
-        <a href="products.php" class="btn btn-outline-primary-2 mr-2">Continue Shopping</a>
-        <a href="checkout.php" class="btn btn-primary btn-round">
-            <span>Proceed to Checkout</span><i class="icon-long-arrow-right"></i>
-        </a>
-    </div>
+        <?php $flashSuccess = Session::flash('success'); ?>
+        <?php $flashError = Session::flash('error'); ?>
+        <?php if ($flashSuccess): ?>
+            <div class="alert alert-success"><?php echo htmlspecialchars($flashSuccess); ?></div>
+        <?php endif; ?>
+        <?php if ($flashError): ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($flashError); ?></div>
+        <?php endif; ?>
 
-    <?php endif; ?>
-</div><!-- End .container -->
+        <?php if (empty($cartItems)): ?>
+
+            <div class="text-center py-5">
+                <p>Your cart is empty.</p>
+                <a href="products.php" class="btn btn-primary">Continue Shopping</a>
+            </div>
+
+        <?php else: ?>
+
+            <form action="cart.php" method="post" class="cart-form">
+                <input type="hidden" name="action" value="update">
+
+                <div class="cart-table-wrap">
+                    <table class="table storefront-cart-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($cartItems as $item): ?>
+                                <tr>
+                                    <td>
+                                        <div class="cart-product-cell">
+                                            <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                                                alt="<?php echo htmlspecialchars($item['name']); ?>" width="60" class="mr-3">
+                                            <a
+                                                href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+                                        </div>
+                                    </td>
+                                    <td>$<?php echo number_format($item['price'], 2); ?></td>
+                                    <td>
+                                        <input type="hidden" name="product_id[]" value="<?php echo (int) $item['id']; ?>">
+                                        <input type="number" name="quantity[]" value="<?php echo (int) $item['quantity']; ?>"
+                                            min="1" max="<?php echo (int) $item['stock']; ?>"
+                                            class="form-control cart-quantity-input">
+                                    </td>
+                                    <td>$<?php echo number_format($item['subtotal'], 2); ?></td>
+                                    <td>
+                                        <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>"
+                                            class="cart-remove-link">Remove</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="cart-actions-row">
+                    <button type="submit" class="secondary-action">Update cart</button>
+                    <div class="cart-total"><span>Total</span><strong>$<?php echo number_format($cartTotal, 2); ?></strong>
+                    </div>
+                </div>
+            </form>
+
+            <div class="cart-footer-actions">
+                <a href="products.php" class="secondary-action">Continue shopping</a>
+                <a href="checkout.php" class="primary-action">
+                    <span>Proceed to Checkout</span><i class="icon-long-arrow-right"></i>
+                </a>
+            </div>
+
+        <?php endif; ?>
+    </div><!-- End .container -->
+</div><!-- End .storefront-page -->
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>
