@@ -1,188 +1,396 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+/**
+ * admin/reports.php
+ * ------------------------------------------------
+ * Sales Analytics & Reports: three tabbed summaries — Weekly,
+ * Monthly, and Yearly — each with its own chart + table, plus
+ * supporting breakdowns (category, payment method, low stock)
+ * below.
+ */
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
-  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-  <title>Sales Reports - Material Dashboard 3</title>
-  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
-  <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
-  <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
-  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
-</head>
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../core/Database.php';
+require_once __DIR__ . '/../core/Session.php';
+require_once __DIR__ . '/../core/Auth.php';
 
-<body class="g-sidenav-show bg-gray-100">
-  <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2" id="sidenav-main">
-    <div class="sidenav-header">
-      <a class="navbar-brand px-4 py-3 m-0" href="dashboard.html">
-        <img src="../assets/img/logo-ct-dark.png" class="navbar-brand-img" width="26" height="26" alt="main_logo">
-        <span class="ms-1 text-sm text-dark">Admin Portal</span>
-      </a>
+Session::start();
+$db = new Database($conn);
+Auth::requireAdmin('login.php');
+
+// ---------------------------------------------------------------
+// WEEKLY — last 7 days, one row per day, filling in $0 / 0 orders
+// for any day that had no orders at all.
+// ---------------------------------------------------------------
+$weeklyRows = $db->fetchAll(
+  "SELECT DATE(created_at) AS day, COUNT(*) AS orders, SUM(total_amount) AS sales
+     FROM orders
+     WHERE created_at >= NOW() - INTERVAL 7 DAY
+     GROUP BY day"
+);
+$weeklyByDate = [];
+foreach ($weeklyRows as $row) {
+  $weeklyByDate[$row['day']] = $row;
+}
+
+$weeklyLabels = [];
+$weeklySales = [];
+$weeklyTable = [];
+for ($i = 6; $i >= 0; $i--) {
+  $date = date('Y-m-d', strtotime("-$i days"));
+  $label = date('D, M j', strtotime($date));
+  $row = $weeklyByDate[$date] ?? ['orders' => 0, 'sales' => 0];
+  $weeklyLabels[] = date('D', strtotime($date));
+  $weeklySales[] = (float) $row['sales'];
+  $weeklyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+}
+$weeklyTotal = array_sum($weeklySales);
+
+// ---------------------------------------------------------------
+// MONTHLY — current calendar year, one row per month, filling in
+// $0 / 0 orders for months with no orders (Jan through current month).
+// ---------------------------------------------------------------
+$monthlyRows = $db->fetchAll(
+  "SELECT MONTH(created_at) AS month_num, COUNT(*) AS orders, SUM(total_amount) AS sales
+     FROM orders
+     WHERE YEAR(created_at) = YEAR(CURDATE())
+     GROUP BY MONTH(created_at)"
+);
+$monthlyByNum = [];
+foreach ($monthlyRows as $row) {
+  $monthlyByNum[(int) $row['month_num']] = $row;
+}
+
+$currentMonth = (int) date('n');
+$monthlyLabels = [];
+$monthlySales = [];
+$monthlyTable = [];
+for ($m = 1; $m <= $currentMonth; $m++) {
+  $row = $monthlyByNum[$m] ?? ['orders' => 0, 'sales' => 0];
+  $label = date('F', mktime(0, 0, 0, $m, 1));
+  $monthlyLabels[] = date('M', mktime(0, 0, 0, $m, 1));
+  $monthlySales[] = (float) $row['sales'];
+  $monthlyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+}
+$monthlyTotal = array_sum($monthlySales);
+
+// ---------------------------------------------------------------
+// YEARLY — every year that has at least one order.
+// ---------------------------------------------------------------
+$yearlyRows = $db->fetchAll(
+  "SELECT YEAR(created_at) AS year, COUNT(*) AS orders, SUM(total_amount) AS sales
+     FROM orders
+     GROUP BY year
+     ORDER BY year ASC"
+);
+$yearlyLabels = [];
+$yearlySales = [];
+$yearlyTable = [];
+foreach ($yearlyRows as $row) {
+  $yearlyLabels[] = (string) $row['year'];
+  $yearlySales[] = (float) $row['sales'];
+  $yearlyTable[] = ['label' => (string) $row['year'], 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+}
+$yearlyTotal = array_sum($yearlySales);
+
+// ---------------------------------------------------------------
+// Supporting breakdowns (unchanged from before)
+// ---------------------------------------------------------------
+$categorySales = $db->fetchAll('SELECT c.name, COALESCE(SUM(oi.subtotal), 0) AS sales FROM categories c LEFT JOIN products p ON p.category_id = c.id LEFT JOIN order_items oi ON oi.product_id = p.id GROUP BY c.id, c.name ORDER BY sales DESC');
+$orderStatuses = $db->fetchAll('SELECT order_status, COUNT(*) AS total FROM orders GROUP BY order_status ORDER BY total DESC');
+$paymentMethods = $db->fetchAll('SELECT payment_method, COUNT(*) AS total, COALESCE(SUM(total_amount), 0) AS sales FROM orders GROUP BY payment_method ORDER BY sales DESC');
+$lowStock = $db->fetchAll('SELECT id, name, stock FROM products WHERE status = 1 AND stock <= 5 ORDER BY stock ASC, name ASC');
+
+$pageTitle = 'Reports';
+$activeNav = 'reports';
+$adminRoot = '';
+$includeCharts = true;
+require __DIR__ . '/../includes/admin-header.php';
+?>
+
+<div class="mb-4">
+    <h3 class="mb-1 h4 font-weight-bolder">Sales Analytics &amp; Reports</h3>
+    <p class="mb-0 text-sm">Weekly, monthly, and yearly sales summaries, plus category, payment, and inventory breakdowns.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header pb-0">
+        <ul class="nav nav-tabs" id="salesReportTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="weekly-tab" data-bs-toggle="tab" href="#weekly-pane" role="tab" aria-selected="true">Weekly</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="monthly-tab" data-bs-toggle="tab" href="#monthly-pane" role="tab" aria-selected="false">Monthly</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="yearly-tab" data-bs-toggle="tab" href="#yearly-pane" role="tab" aria-selected="false">Yearly</a>
+            </li>
+        </ul>
     </div>
-    <hr class="horizontal dark mt-0 mb-2">
-    <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link text-dark" href="dashboard.html">
-            <i class="material-symbols-rounded opacity-5">dashboard</i>
-            <span class="nav-link-text ms-1">Dashboard</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-dark" href="products.html">
-            <i class="material-symbols-rounded opacity-5">inventory_2</i>
-            <span class="nav-link-text ms-1">Products</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link text-dark" href="categories.html">
-            <i class="material-symbols-rounded opacity-5">category</i>
-            <span class="nav-link-text ms-1">Categories</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link active bg-gradient-dark text-white" href="reports.html">
-            <i class="material-symbols-rounded opacity-5">analytics</i>
-            <span class="nav-link-text ms-1">Reports</span>
-          </a>
-        </li>
-      </ul>
+
+    <div class="card-body">
+        <div class="tab-content" id="salesReportTabsContent">
+
+            <!-- WEEKLY -->
+            <div class="tab-pane fade show active" id="weekly-pane" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <p class="text-sm mb-2">Last 7 days &middot; Total: <strong>$<?php echo number_format($weeklyTotal, 2); ?></strong></p>
+                        <div class="chart"><canvas id="weekly-chart" height="180"></canvas></div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="table-responsive">
+                            <table class="table align-items-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Day</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($weeklyTable as $row): ?>
+                                      <tr>
+                                          <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                          <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                          <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
+                                      </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="border-top">
+                                        <th class="ps-2">Total</th>
+                                        <th></th>
+                                        <th class="text-end pe-2">$<?php echo number_format($weeklyTotal, 2); ?></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MONTHLY -->
+            <div class="tab-pane fade" id="monthly-pane" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <p class="text-sm mb-2"><?php echo date('Y'); ?> so far &middot; Total: <strong>$<?php echo number_format($monthlyTotal, 2); ?></strong></p>
+                        <div class="chart"><canvas id="monthly-chart" height="180"></canvas></div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="table-responsive">
+                            <table class="table align-items-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Month</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($monthlyTable as $row): ?>
+                                      <tr>
+                                          <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                          <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                          <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
+                                      </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="border-top">
+                                        <th class="ps-2">Total</th>
+                                        <th></th>
+                                        <th class="text-end pe-2">$<?php echo number_format($monthlyTotal, 2); ?></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YEARLY -->
+            <div class="tab-pane fade" id="yearly-pane" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <p class="text-sm mb-2">All time &middot; Total: <strong>$<?php echo number_format($yearlyTotal, 2); ?></strong></p>
+                        <div class="chart"><canvas id="yearly-chart" height="180"></canvas></div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="table-responsive">
+                            <table class="table align-items-center mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Year</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($yearlyTable)): ?>
+                                      <tr><td class="ps-2 text-xs" colspan="3">No orders yet.</td></tr>
+                                    <?php else: ?>
+                                      <?php foreach ($yearlyTable as $row): ?>
+                                        <tr>
+                                            <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                            <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                            <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
+                                        </tr>
+                                      <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="border-top">
+                                        <th class="ps-2">Total</th>
+                                        <th></th>
+                                        <th class="text-end pe-2">$<?php echo number_format($yearlyTotal, 2); ?></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
-  </aside>
+</div>
 
-  <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
-    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur" data-scroll="true">
-      <div class="container-fluid py-1 px-3">
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
-            <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a></li>
-            <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Reports</li>
-          </ol>
-        </nav>
-      </div>
-    </nav>
-
-    <div class="container-fluid py-2">
-      <!-- Report Filter Card -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <div class="card p-3">
-            <div class="row align-items-center">
-              <div class="col-md-4">
-                <div class="input-group input-group-static">
-                  <label>Start Date</label>
-                  <input type="date" class="form-control">
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="input-group input-group-static">
-                  <label>End Date</label>
-                  <input type="date" class="form-control">
-                </div>
-              </div>
-              <div class="col-md-4 mt-3 mt-md-0 d-flex gap-2">
-                <button class="btn bg-gradient-dark mb-0 w-100">Filter Report</button>
-                <button class="btn btn-outline-dark mb-0 w-100">Export CSV</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart Visuals -->
-      <div class="row mb-4">
-        <div class="col-lg-8 mb-4">
-          <div class="card">
-            <div class="card-body">
-              <h6 class="mb-0">Category Sales Breakdown</h6>
-              <p class="text-sm">Monthly Revenue by Top Categories</p>
-              <div class="chart">
-                <canvas id="chart-reports" class="chart-canvas" height="220"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-4 mb-4">
-          <div class="card h-100">
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
             <div class="card-header pb-0">
-              <h6>Top Performing Categories</h6>
+                <h6>Order statuses</h6>
             </div>
-            <div class="card-body">
-              <ul class="list-group">
-                <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
-                  <div class="d-flex align-items-center">
-                    <div class="icon icon-shape icon-sm me-3 bg-gradient-dark shadow text-center border-radius-md">
-                      <i class="material-symbols-rounded opacity-10">devices</i>
-                    </div>
-                    <div class="d-flex flex-column">
-                      <h6 class="mb-1 text-dark text-sm">Electronics</h6>
-                      <span class="text-xs">1,240 Sales</span>
-                    </div>
-                  </div>
-                  <div class="d-flex align-items-center text-dark text-sm font-weight-bold">
-                    $42,800
-                  </div>
-                </li>
-                <li class="list-group-item border-0 d-flex justify-content-between ps-0 border-radius-lg">
-                  <div class="d-flex align-items-center">
-                    <div class="icon icon-shape icon-sm me-3 bg-gradient-dark shadow text-center border-radius-md">
-                      <i class="material-symbols-rounded opacity-10">apparel</i>
-                    </div>
-                    <div class="d-flex flex-column">
-                      <h6 class="mb-1 text-dark text-sm">Apparel</h6>
-                      <span class="text-xs">830 Sales</span>
-                    </div>
-                  </div>
-                  <div class="d-flex align-items-center text-dark text-sm font-weight-bold">
-                    $18,400
-                  </div>
-                </li>
-              </ul>
+            <div class="card-body px-0 pt-2">
+                <div class="table-responsive">
+                    <table class="table align-items-center mb-0">
+                        <tbody>
+                            <?php foreach ($orderStatuses as $row): ?>
+                              <tr>
+                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars(ucfirst($row['order_status'])); ?></td>
+                                  <td class="text-end pe-3 font-weight-bold text-xs"><?php echo (int) $row['total']; ?></td>
+                              </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($orderStatuses)): ?>
+                              <tr><td class="ps-3 text-xs">No orders yet.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </main>
 
-  <script src="../assets/js/core/popper.min.js"></script>
-  <script src="../assets/js/core/bootstrap.min.js"></script>
-  <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
-  <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
-  <script src="../assets/js/plugins/chartjs.min.js"></script>
-  <script>
-    var ctx = document.getElementById("chart-reports").getContext("2d");
-    new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-        datasets: [{
-          label: "Sales ($)",
-          tension: 0.4,
-          borderWidth: 0,
-          borderRadius: 4,
-          borderSkipped: false,
-          backgroundColor: "#43A047",
-          data: [12000, 19000, 15000, 25000, 22000, 30000],
-          barThickness: 'flex'
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { grid: { drawBorder: false, display: true, drawOnChartArea: true } },
-          x: { grid: { drawBorder: false, display: false } }
-        }
-      }
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Sales by category</h6>
+            </div>
+            <div class="card-body px-0 pt-2">
+                <div class="table-responsive">
+                    <table class="table align-items-center mb-0">
+                        <tbody>
+                            <?php foreach ($categorySales as $row): ?>
+                              <tr>
+                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars($row['name']); ?></td>
+                                  <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
+                              </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($categorySales)): ?>
+                              <tr><td class="ps-3 text-xs">No categories yet.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header pb-0">
+                <h6>Payment methods</h6>
+            </div>
+            <div class="card-body px-0 pt-2">
+                <div class="table-responsive">
+                    <table class="table align-items-center mb-0">
+                        <tbody>
+                            <?php foreach ($paymentMethods as $row): ?>
+                              <tr>
+                                  <td class="ps-3 text-xs"><?php echo strtoupper(htmlspecialchars($row['payment_method'])); ?> (<?php echo (int) $row['total']; ?>)</td>
+                                  <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
+                              </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($paymentMethods)): ?>
+                              <tr><td class="ps-3 text-xs">No payment data yet.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header pb-0">
+        <h6>Inventory requiring attention</h6>
+        <p class="text-sm">Active products with five or fewer units remaining.</p>
+    </div>
+    <div class="card-body px-0 pt-2">
+        <div class="table-responsive">
+            <table class="table align-items-center mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-3">Product</th>
+                        <th class="text-uppercase text-secondary text-xs font-weight-bolder">Stock</th>
+                        <th class="text-uppercase text-secondary text-xs font-weight-bolder">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($lowStock as $product): ?>
+                      <tr>
+                          <td class="ps-3 text-xs"><?php echo htmlspecialchars($product['name']); ?></td>
+                          <td class="text-xs"><?php echo (int) $product['stock']; ?></td>
+                          <td><a href="products/edit.php?id=<?php echo (int) $product['id']; ?>" class="text-xs font-weight-bold">Edit product</a></td>
+                      </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($lowStock)): ?>
+                      <tr><td class="ps-3 text-xs">Inventory looks healthy.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    new Chart(document.getElementById('weekly-chart'), {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($weeklyLabels); ?>,
+            datasets: [{ label: 'Sales', data: <?php echo json_encode($weeklySales); ?>, backgroundColor: '#344767', borderRadius: 4, maxBarThickness: 32 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
     });
-  </script>
-  <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
-</body>
 
-</html>
+    new Chart(document.getElementById('monthly-chart'), {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($monthlyLabels); ?>,
+            datasets: [{ label: 'Sales', data: <?php echo json_encode($monthlySales); ?>, backgroundColor: '#5e72e4', borderRadius: 4, maxBarThickness: 32 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    new Chart(document.getElementById('yearly-chart'), {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($yearlyLabels ?: ['No data']); ?>,
+            datasets: [{ label: 'Sales', data: <?php echo json_encode($yearlySales ?: [0]); ?>, backgroundColor: '#49a078', borderRadius: 4, maxBarThickness: 60 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+</script>
+
+<?php require __DIR__ . '/../includes/admin-footer.php'; ?>

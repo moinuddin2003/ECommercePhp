@@ -111,10 +111,12 @@ class Auth
     }
 
     /** Call at the top of any page that requires a logged-in customer. */
-    public static function requireLogin($redirectTo = '/public/login.php')
+    public static function requireLogin($redirectTo = 'login.php')
     {
         if (!self::isLoggedIn()) {
-            header('Location: ' . $redirectTo);
+            $current = $_SERVER['REQUEST_URI'] ?? '';
+            $separator = strpos($redirectTo, '?') === false ? '?' : '&';
+            header('Location: ' . $redirectTo . $separator . 'redirect=' . urlencode($current));
             exit;
         }
     }

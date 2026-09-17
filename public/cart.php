@@ -2,10 +2,16 @@
 /**
  * public/cart.php
  * ------------------------------------------------
- * Handles all cart actions (POST/GET action=...) AND
- * displays the current cart. Cart lives entirely in
- * $_SESSION['cart'][product_id] = quantity — no DB
- * table needed until an order is actually placed.
+ * Handles all cart actions AND displays the cart page.
+ *
+ *   POST action=add    product_id, quantity   -> add to cart
+ *   GET  action=remove id                      -> remove a line
+ *   POST action=update  product_id[], quantity[] -> update quantities
+ *   POST action=clear                          -> empty the cart
+ *   (no action)                                -> just show the cart
+ *
+ * After any action, we redirect back (POST-Redirect-GET pattern) so
+ * refreshing the page never re-submits the form.
  */
 
 require_once __DIR__ . '/../config/database.php';
@@ -14,53 +20,38 @@ require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Cart.php';
 
-$db = new Database($conn);
 Session::start();
+$db = new Database($conn);
 
 $action = $_POST['action'] ?? $_GET['action'] ?? null;
 
-// ---------- Handle actions first (Post/Redirect/Get pattern) ----------
-
-if ($action === 'add') {
+if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $productId = (int) ($_POST['product_id'] ?? 0);
     $quantity = (int) ($_POST['quantity'] ?? 1);
 
-    $product = $db->fetchOne(
-        'SELECT id, stock FROM products WHERE id = ? AND status = 1',
-        [$productId],
-        'i'
-    );
+    $added = Cart::addItem($productId, $quantity, $db);
+    Session::flash($added ? 'success' : 'error', $added ? 'Added to cart.' : 'Could not add that item (out of stock or unavailable).');
 
-    if ($product) {
-        Cart::add($productId, $quantity, (int) $product['stock']);
-        Session::flash('success', 'Item added to cart.');
-    } else {
-        Session::flash('error', 'That product is no longer available.');
-    }
+    // Send the shopper back to wherever they clicked "Add to cart" from
+    $redirectTo = $_SERVER['HTTP_REFERER'] ?? 'cart.php';
+    header('Location: ' . $redirectTo);
+    exit;
+}
 
+if ($action === 'remove') {
+    $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+    Cart::removeItem($id);
+    Session::flash('success', 'Item removed from cart.');
     header('Location: cart.php');
     exit;
 }
 
-if ($action === 'update' && !empty($_POST['quantity']) && is_array($_POST['quantity'])) {
-    foreach ($_POST['quantity'] as $productId => $qty) {
-        $productId = (int) $productId;
-        $qty = (int) $qty;
+if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $ids = $_POST['product_id'] ?? [];
+    $quantities = $_POST['quantity'] ?? [];
 
-        if ($qty <= 0) {
-            Cart::remove($productId);
-            continue;
-        }
-
-        $product = $db->fetchOne(
-            'SELECT stock FROM products WHERE id = ?',
-            [$productId],
-            'i'
-        );
-
-        if ($product) {
-            $_SESSION['cart'][$productId] = min($qty, (int) $product['stock']);
-        }
+    foreach ($ids as $i => $productId) {
+        Cart::updateItem($productId, $quantities[$i] ?? 0);
     }
 
     Session::flash('success', 'Cart updated.');
@@ -68,40 +59,30 @@ if ($action === 'update' && !empty($_POST['quantity']) && is_array($_POST['quant
     exit;
 }
 
-if ($action === 'remove') {
-    $productId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-    Cart::remove($productId);
-    Session::flash('success', 'Item removed from cart.');
-    header('Location: cart.php');
-    exit;
-}
-
 if ($action === 'clear') {
-    Cart::clear();
+    Cart::clearCart();
     header('Location: cart.php');
     exit;
 }
 
-// ---------- Display the cart ----------
-
+// ---- Display the cart page ----
 $cartItems = Cart::getItems($db);
 $cartTotal = Cart::getTotal($cartItems);
 
-$pageTitle = 'Shopping Cart';
+$pageTitle = 'Your Cart';
 require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="container mb-5 mt-4">
-    <h1 class="title text-center mb-4">Shopping Cart</h1>
+    <h1 class="title text-center mb-4">Your Cart</h1>
 
-    <?php $successMsg = Session::flash('success'); ?>
-    <?php if ($successMsg): ?>
-    <div class="alert alert-success text-center"><?php echo htmlspecialchars($successMsg); ?></div>
+    <?php $flashSuccess = Session::flash('success'); ?>
+    <?php $flashError = Session::flash('error'); ?>
+    <?php if ($flashSuccess): ?>
+    <div class="alert alert-success"><?php echo htmlspecialchars($flashSuccess); ?></div>
     <?php endif; ?>
-
-    <?php $errorMsg = Session::flash('error'); ?>
-    <?php if ($errorMsg): ?>
-    <div class="alert alert-danger text-center"><?php echo htmlspecialchars($errorMsg); ?></div>
+    <?php if ($flashError): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($flashError); ?></div>
     <?php endif; ?>
 
     <?php if (empty($cartItems)): ?>
@@ -115,7 +96,8 @@ require __DIR__ . '/../includes/header.php';
 
     <form action="cart.php" method="post">
         <input type="hidden" name="action" value="update">
-        <table class="table table-bordered align-middle">
+
+        <table class="table">
             <thead>
                 <tr>
                     <th>Product</th>
@@ -128,17 +110,20 @@ require __DIR__ . '/../includes/header.php';
             <tbody>
                 <?php foreach ($cartItems as $item): ?>
                 <tr>
-                    <td class="d-flex align-items-center">
-                        <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" width="60" height="60" class="mr-3" style="object-fit: cover;">
-                        <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" width="60" class="mr-3">
+                            <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+                        </div>
                     </td>
                     <td>$<?php echo number_format($item['price'], 2); ?></td>
-                    <td style="width: 110px;">
-                        <input type="number" name="quantity[<?php echo (int) $item['id']; ?>]" value="<?php echo (int) $item['quantity']; ?>" min="0" max="<?php echo (int) $item['stock']; ?>" class="form-control">
+                    <td>
+                        <input type="hidden" name="product_id[]" value="<?php echo (int) $item['id']; ?>">
+                        <input type="number" name="quantity[]" value="<?php echo (int) $item['quantity']; ?>" min="1" max="<?php echo (int) $item['stock']; ?>" class="form-control" style="width: 80px;">
                     </td>
                     <td>$<?php echo number_format($item['subtotal'], 2); ?></td>
                     <td>
-                        <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>" class="btn-remove" title="Remove"><i class="icon-close"></i></a>
+                        <a href="cart.php?action=remove&id=<?php echo (int) $item['id']; ?>" class="btn btn-sm btn-outline-danger">Remove</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -151,7 +136,7 @@ require __DIR__ . '/../includes/header.php';
         </div>
     </form>
 
-    <div class="text-right mt-4">
+    <div class="text-right mt-3">
         <a href="products.php" class="btn btn-outline-primary-2 mr-2">Continue Shopping</a>
         <a href="checkout.php" class="btn btn-primary btn-round">
             <span>Proceed to Checkout</span><i class="icon-long-arrow-right"></i>

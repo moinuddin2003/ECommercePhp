@@ -1,153 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
-    <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-    <title>Product Categories - Material Dashboard 3</title>
-    <link rel="stylesheet" type="text/css"
-        href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
-    <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
-    <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
-    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
-    <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
-</head>
-
 <?php
-require_once __DIR__ . '/../../includes/admin-sidebar.php';
+/**
+ * admin/categories/index.php
+ * ------------------------------------------------
+ * Lists all categories with edit/delete actions.
+ */
+
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../core/Session.php';
+require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/Upload.php';
+
+Session::start();
+$db = new Database($conn);
+Auth::requireAdmin('../login.php');
+
+// Handle delete (POST, with a confirm() dialog in the JS below)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    $id = (int) ($_POST['id'] ?? 0);
+    $category = $db->fetchOne('SELECT image FROM categories WHERE id = ?', [$id], 'i');
+
+    // Deleting a category CASCADEs and deletes its products too (per your schema's
+    // ON DELETE CASCADE) — so we warn clearly about that in the confirm dialog below.
+    $db->execute('DELETE FROM categories WHERE id = ?', [$id], 'i');
+
+    if ($category) {
+        Upload::delete(__DIR__ . '/../../public/uploads/categories', $category['image']);
+    }
+
+    Session::flash('success', 'Category deleted.');
+    header('Location: index.php');
+    exit;
+}
+
+$categories = $db->fetchAll(
+    "SELECT c.id, c.name, c.slug, c.image, c.status,
+            (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
+     FROM categories c
+     ORDER BY c.name ASC"
+);
+
+$pageTitle = 'Categories';
+$activeNav = 'categories';
+$adminRoot = '../';
+require __DIR__ . '/../../includes/admin-header.php';
 ?>
-<!-- Main Content -->
-<main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
-    <!-- Navbar -->
-    <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur"
-        data-scroll="true">
-        <div class="container-fluid py-1 px-3">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
-                    <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a>
-                    </li>
-                    <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Categories</li>
-                </ol>
-            </nav>
-        </div>
-    </nav>
 
-    <div class="container-fluid py-2">
-        <div class="row">
-            <!-- Add Category Form Card -->
-            <div class="col-lg-4 mb-4">
-                <div class="card">
-                    <div class="card-header pb-0">
-                        <h6>Add New Category</h6>
-                    </div>
-                    <div class="card-body">
-                        <form role="form">
-                            <div class="input-group input-group-static mb-4">
-                                <label>Category Name</label>
-                                <input type="text" class="form-control" placeholder="e.g. Electronics">
-                            </div>
-                            <div class="input-group input-group-static mb-4">
-                                <label>Slug</label>
-                                <input type="text" class="form-control" placeholder="e.g. electronics">
-                            </div>
-                            <div class="input-group input-group-static mb-4">
-                                <label>Parent Category</label>
-                                <select class="form-control">
-                                    <option value="">None (Main Category)</option>
-                                    <option value="1">Electronics</option>
-                                    <option value="2">Apparel</option>
-                                </select>
-                            </div>
-                            <div class="input-group input-group-static mb-4">
-                                <label>Description</label>
-                                <textarea class="form-control" rows="3"></textarea>
-                            </div>
-                            <button type="button" class="btn bg-gradient-dark mb-0">Save Category</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="h4 font-weight-bolder mb-0">Categories</h3>
+    <a href="create.php" class="btn bg-gradient-dark mb-0">+ Add Category</a>
+</div>
 
-            <!-- Categories List Table Card -->
-            <div class="col-lg-8 mb-4">
-                <div class="card">
-                    <div class="card-header pb-0">
-                        <h6>Product Categories List</h6>
-                    </div>
-                    <div class="card-body px-0 pb-2">
-                        <div class="table-responsive p-0">
-                            <table class="table align-items-center mb-0">
-                                <thead>
-                                    <tr>
-                                        <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                            Category</th>
-                                        <th
-                                            class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                            Slug</th>
-                                        <th
-                                            class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                            Total Products</th>
-                                        <th class="text-secondary opacity-7"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex px-3 py-1">
-                                                <div class="d-flex flex-column justify-content-center">
-                                                    <h6 class="mb-0 text-sm">Electronics</h6>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <p class="text-xs font-weight-bold mb-0">electronics</p>
-                                        </td>
-                                        <td class="align-middle text-center text-sm">
-                                            <span class="badge badge-sm bg-gradient-success">124 Items</span>
-                                        </td>
-                                        <td class="align-middle">
-                                            <a href="javascript:;" class="text-secondary font-weight-bold text-xs"
-                                                data-toggle="tooltip" title="Edit category">Edit</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex px-3 py-1">
-                                                <div class="d-flex flex-column justify-content-center">
-                                                    <h6 class="mb-0 text-sm">Fashion & Apparel</h6>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <p class="text-xs font-weight-bold mb-0">fashion-apparel</p>
-                                        </td>
-                                        <td class="align-middle text-center text-sm">
-                                            <span class="badge badge-sm bg-gradient-success">85 Items</span>
-                                        </td>
-                                        <td class="align-middle">
-                                            <a href="javascript:;" class="text-secondary font-weight-bold text-xs"
-                                                data-toggle="tooltip" title="Edit category">Edit</a>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<?php $flash = Session::flash('success'); ?>
+<?php if ($flash): ?>
+    <div class="alert alert-success"><?php echo htmlspecialchars($flash); ?></div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-body px-0 pt-0 pb-2">
+        <div class="table-responsive p-0">
+            <?php if (empty($categories)): ?>
+                <p class="px-3 py-3">No categories yet. <a href="create.php">Create your first one</a>.</p>
+            <?php else: ?>
+                <table class="table align-items-center mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-3">Image</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Name</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Slug</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Products</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Status</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($categories as $cat): ?>
+                            <tr>
+                                <td class="ps-3">
+                                    <?php if ($cat['image']): ?>
+                                        <img src="../../public/uploads/categories/<?php echo htmlspecialchars($cat['image']); ?>"
+                                            alt="" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px;">
+                                    <?php else: ?>
+                                        <span class="text-secondary text-xs">No image</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($cat['name']); ?></td>
+                                <td class="text-xs text-secondary"><?php echo htmlspecialchars($cat['slug']); ?></td>
+                                <td><?php echo (int) $cat['product_count']; ?></td>
+                                <td>
+                                    <?php if ($cat['status']): ?>
+                                        <span class="badge badge-sm bg-gradient-success">Active</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-sm bg-gradient-secondary">Hidden</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="edit.php?id=<?php echo (int) $cat['id']; ?>"
+                                        class="text-secondary font-weight-bold text-xs me-2">Edit</a>
+                                    <form action="index.php" method="post" class="d-inline"
+                                        onsubmit="return confirm('Delete &quot;<?php echo htmlspecialchars(addslashes($cat['name'])); ?>&quot;? This will also delete its <?php echo (int) $cat['product_count']; ?> product(s). This cannot be undone.');">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo (int) $cat['id']; ?>">
+                                        <button type="submit"
+                                            class="btn btn-link text-danger text-xs font-weight-bold p-0 m-0">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
     </div>
-</main>
+</div>
 
-<script src="../assets/js/core/popper.min.js"></script>
-<script src="../assets/js/core/bootstrap.min.js"></script>
-<script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
-<script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
-<script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
-</body>
-
-</html>
+<?php require __DIR__ . '/../../includes/admin-footer.php'; ?>

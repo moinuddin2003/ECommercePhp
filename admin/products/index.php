@@ -1,201 +1,211 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+/**
+ * admin/products/index.php
+ * ------------------------------------------------
+ * Lists products with search + category filter + pagination.
+ *
+ * Deleting a product can FAIL on purpose: your schema has
+ * order_items.product_id -> products.id ON DELETE RESTRICT,
+ * meaning the database itself refuses to delete a product that
+ * appears in any past order (so order history never breaks).
+ * We catch that and tell the admin to deactivate it instead.
+ */
 
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
-    <link rel="icon" type="image/png" href="../assets/img/favicon.png">
-    <title>Products Management - Material Dashboard 3</title>
-    <link rel="stylesheet" type="text/css"
-        href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
-    <link href="../assets/css/nucleo-icons.css" rel="stylesheet" />
-    <link href="../assets/css/nucleo-svg.css" rel="stylesheet" />
-    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
-    <link id="pagestyle" href="../assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
-</head>
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../core/Session.php';
+require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/Upload.php';
 
-<body class="g-sidenav-show bg-gray-100">
-    <aside class="sidenav navbar navbar-vertical navbar-expand-xs border-radius-lg fixed-start ms-2 bg-white my-2"
-        id="sidenav-main">
-        <div class="sidenav-header">
-            <a class="navbar-brand px-4 py-3 m-0" href="dashboard.html">
-                <img src="../assets/img/logo-ct-dark.png" class="navbar-brand-img" width="26" height="26"
-                    alt="main_logo">
-                <span class="ms-1 text-sm text-dark">Admin Portal</span>
-            </a>
-        </div>
-        <hr class="horizontal dark mt-0 mb-2">
-        <div class="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link text-dark" href="dashboard.html">
-                        <i class="material-symbols-rounded opacity-5">dashboard</i>
-                        <span class="nav-link-text ms-1">Dashboard</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active bg-gradient-dark text-white" href="products.html">
-                        <i class="material-symbols-rounded opacity-5">inventory_2</i>
-                        <span class="nav-link-text ms-1">Products</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-dark" href="categories.html">
-                        <i class="material-symbols-rounded opacity-5">category</i>
-                        <span class="nav-link-text ms-1">Categories</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-dark" href="reports.html">
-                        <i class="material-symbols-rounded opacity-5">analytics</i>
-                        <span class="nav-link-text ms-1">Reports</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </aside>
+Session::start();
+$db = new Database($conn);
+Auth::requireAdmin('../login.php');
 
-    <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
-        <nav class="navbar navbar-main navbar-expand-lg px-0 mx-3 shadow-none border-radius-xl" id="navbarBlur"
-            data-scroll="true">
-            <div class="container-fluid py-1 px-3">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5">
-                        <li class="breadcrumb-item text-sm"><a class="opacity-5 text-dark" href="javascript:;">Pages</a>
-                        </li>
-                        <li class="breadcrumb-item text-sm text-dark active" aria-current="page">Products</li>
-                    </ol>
-                </nav>
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
+    $id = (int) ($_POST['id'] ?? 0);
+    $product = $db->fetchOne('SELECT image FROM products WHERE id = ?', [$id], 'i');
+
+    try {
+        $db->execute('DELETE FROM products WHERE id = ?', [$id], 'i');
+
+        if ($product) {
+            Upload::delete(__DIR__ . '/../../public/uploads/products', $product['image']);
+        }
+
+        Session::flash('success', 'Product deleted.');
+    } catch (mysqli_sql_exception $e) {
+        // This product exists in at least one past order — the database
+        // correctly refuses to delete it so order history stays intact.
+        Session::flash('error', 'Cannot delete this product because it appears in existing orders. Try deactivating it instead (uncheck "Active" on the edit page).');
+    }
+
+    header('Location: index.php');
+    exit;
+}
+
+$search = trim($_GET['q'] ?? '');
+$categoryFilter = (int) ($_GET['category'] ?? 0);
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 15;
+$offset = ($page - 1) * $perPage;
+
+$where = 'WHERE 1=1';
+$params = [];
+$types = '';
+
+if ($search !== '') {
+    $where .= ' AND p.name LIKE ?';
+    $params[] = '%' . $search . '%';
+    $types .= 's';
+}
+
+if ($categoryFilter > 0) {
+    $where .= ' AND p.category_id = ?';
+    $params[] = $categoryFilter;
+    $types .= 'i';
+}
+
+$countRow = $db->fetchOne("SELECT COUNT(*) AS total FROM products p $where", $params, $types);
+$totalProducts = (int) $countRow['total'];
+$totalPages = max(1, (int) ceil($totalProducts / $perPage));
+
+$listParams = $params;
+$listTypes = $types . 'ii';
+$listParams[] = $offset;
+$listParams[] = $perPage;
+
+$products = $db->fetchAll(
+    "SELECT p.id, p.name, p.slug, p.price, p.stock, p.image, p.status, c.name AS category_name
+     FROM products p
+     JOIN categories c ON c.id = p.category_id
+     $where
+     ORDER BY p.created_at DESC
+     LIMIT ?, ?",
+    $listParams,
+    $listTypes
+);
+
+$allCategories = $db->fetchAll('SELECT id, name FROM categories ORDER BY name ASC');
+
+$pageTitle = 'Products';
+$activeNav = 'products';
+$adminRoot = '../';
+require __DIR__ . '/../../includes/admin-header.php';
+?>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="h4 font-weight-bolder mb-0">Products</h3>
+    <a href="create.php" class="btn bg-gradient-dark mb-0">+ Add Product</a>
+</div>
+
+<?php $flashSuccess = Session::flash('success'); ?>
+<?php $flashError = Session::flash('error'); ?>
+<?php if ($flashSuccess): ?>
+    <div class="alert alert-success"><?php echo htmlspecialchars($flashSuccess); ?></div>
+<?php endif; ?>
+<?php if ($flashError): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($flashError); ?></div>
+<?php endif; ?>
+
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <form action="index.php" method="get" class="row g-2">
+            <div class="col-md-5">
+                <label for="product-search" class="form-label text-sm mb-1">Search products</label>
+                <input id="product-search" type="text" name="q" class="form-control px-3"
+                    style="border: 1px solid #d2d6da; border-radius: 0.5rem; min-height: 42px;"
+                    placeholder="Search by product name..." value="<?php echo htmlspecialchars($search); ?>">
             </div>
-        </nav>
-
-        <div class="container-fluid py-2">
-            <!-- Add New Product Modal Trigger / Form Header -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                            <h6>Add New Product</h6>
-                        </div>
-                        <div class="card-body">
-                            <form role="form" class="row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>Product Name</label>
-                                        <input type="text" class="form-control" placeholder="Wireless Headphones">
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>SKU</label>
-                                        <input type="text" class="form-control" placeholder="SKU-8921">
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>Category</label>
-                                        <select class="form-control">
-                                            <option>Electronics</option>
-                                            <option>Fashion & Apparel</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>Price ($)</label>
-                                        <input type="number" step="0.01" class="form-control" placeholder="99.99">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>Stock Quantity</label>
-                                        <input type="number" class="form-control" placeholder="50">
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="input-group input-group-static">
-                                        <label>Product Image</label>
-                                        <input type="file" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="col-12 text-end">
-                                    <button type="button" class="btn bg-gradient-dark mb-0">Publish Product</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-md-4">
+                <label for="product-category" class="form-label text-sm mb-1">Filter by category</label>
+                <select id="product-category" name="category" class="form-control px-3"
+                    style="border: 1px solid #d2d6da; border-radius: 0.5rem; min-height: 42px;">
+                    <option value="0">All Categories</option>
+                    <?php foreach ($allCategories as $cat): ?>
+                        <option value="<?php echo (int) $cat['id']; ?>" <?php echo $cat['id'] == $categoryFilter ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
-
-            <!-- Inventory List -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header pb-0">
-                            <h6>Product Inventory</h6>
-                        </div>
-                        <div class="card-body px-0 pb-2">
-                            <div class="table-responsive p-0">
-                                <table class="table align-items-center mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th
-                                                class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                                Product</th>
-                                            <th
-                                                class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">
-                                                Category</th>
-                                            <th
-                                                class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                                Price</th>
-                                            <th
-                                                class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                                                Stock</th>
-                                            <th class="text-secondary opacity-7">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex px-3 py-1">
-                                                    <div class="d-flex flex-column justify-content-center">
-                                                        <h6 class="mb-0 text-sm">Sony WH-1000XM4</h6>
-                                                        <p class="text-xs text-secondary mb-0">SKU: HEAD-001</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <p class="text-xs font-weight-bold mb-0">Electronics</p>
-                                            </td>
-                                            <td class="align-middle text-center text-sm">
-                                                <span class="text-xs font-weight-bold">$348.00</span>
-                                            </td>
-                                            <td class="align-middle text-center">
-                                                <span class="badge badge-sm bg-gradient-success">45 in stock</span>
-                                            </td>
-                                            <td class="align-middle">
-                                                <a href="javascript:;" class="text-secondary font-weight-bold text-xs"
-                                                    data-toggle="tooltip" title="Edit product">Edit</a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn bg-gradient-dark w-100 mb-0">Filter</button>
             </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body px-0 pt-0 pb-2">
+        <div class="table-responsive p-0">
+            <?php if (empty($products)): ?>
+                <p class="px-3 py-3">No products found.</p>
+            <?php else: ?>
+                <table class="table align-items-center mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-3">Image</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Name</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Category</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Price</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Stock</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Status</th>
+                            <th class="text-uppercase text-secondary text-xs font-weight-bolder">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($products as $product): ?>
+                            <tr>
+                                <td class="ps-3">
+                                    <img src="../../public/uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
+                                        alt="" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px;">
+                                </td>
+                                <td><?php echo htmlspecialchars($product['name']); ?></td>
+                                <td class="text-xs"><?php echo htmlspecialchars($product['category_name']); ?></td>
+                                <td>$<?php echo number_format($product['price'], 2); ?></td>
+                                <td>
+                                    <?php if ($product['stock'] == 0): ?>
+                                        <span class="badge badge-sm bg-gradient-danger">Out of stock</span>
+                                    <?php else: ?>
+                                        <?php echo (int) $product['stock']; ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($product['status']): ?>
+                                        <span class="badge badge-sm bg-gradient-success">Active</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-sm bg-gradient-secondary">Hidden</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="edit.php?id=<?php echo (int) $product['id']; ?>"
+                                        class="text-secondary font-weight-bold text-xs me-2">Edit</a>
+                                    <form action="index.php" method="post" class="d-inline"
+                                        onsubmit="return confirm('Delete &quot;<?php echo htmlspecialchars(addslashes($product['name'])); ?>&quot;? This cannot be undone.');">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo (int) $product['id']; ?>">
+                                        <button type="submit"
+                                            class="btn btn-link text-danger text-xs font-weight-bold p-0 m-0">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
-    </main>
+    </div>
+</div>
 
-    <script src="../assets/js/core/popper.min.js"></script>
-    <script src="../assets/js/core/bootstrap.min.js"></script>
-    <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
-    <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
-    <script src="../assets/js/material-dashboard.min.js?v=3.2.0"></script>
-</body>
+<?php if ($totalPages > 1): ?>
+    <nav class="mt-3">
+        <ul class="pagination">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <a class="page-link"
+                        href="index.php?<?php echo http_build_query(['q' => $search, 'category' => $categoryFilter, 'page' => $i]); ?>"><?php echo $i; ?></a>
+                </li>
+            <?php endfor; ?>
+        </ul>
+    </nav>
+<?php endif; ?>
 
-</html>
+<?php require __DIR__ . '/../../includes/admin-footer.php'; ?>

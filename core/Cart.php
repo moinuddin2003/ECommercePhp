@@ -3,17 +3,21 @@
  * core/Cart.php
  * ------------------------------------------------
  * The cart itself lives in $_SESSION['cart'] as:
- *   [ product_id => quantity, product_id => quantity, ... ]
+ *   $_SESSION['cart'][product_id] = quantity
  *
- * This class turns that plain array into full product rows
- * (name, price, image, subtotal) by querying the DB — so the
- * price shown is always the CURRENT price, never a stale one
- * stored days ago in the session.
+ * No prices are stored in the session — every price comes
+ * fresh from the `products` table each time, so the cart can
+ * never show a stale/wrong price even if a price changes in
+ * the admin panel while someone has it in their cart.
  *
  * USAGE:
- *   $items = Cart::getItems($db);       // array of product rows + quantity + subtotal
+ *   Cart::addItem($productId, $qty, $db);
+ *   Cart::updateItem($productId, $qty);
+ *   Cart::removeItem($productId);
+ *   Cart::clearCart();
+ *   $items = Cart::getItems($db);      // full product rows + quantity + subtotal
  *   $total = Cart::getTotal($items);
- *   $count = Cart::getCount();          // total quantity, for the header badge
+ *   $count = Cart::getCount();
  */
 
 class Cart
@@ -46,8 +50,8 @@ class Cart
         return $items;
     }
 
-    /** Sum of every item's subtotal. */
-    public static function getTotal(array $items)
+    /** Pass the result of getItems() in — avoids re-querying the DB just for a total. */
+    public static function getTotal($items)
     {
         $total = 0;
         foreach ($items as $item) {
@@ -56,7 +60,7 @@ class Cart
         return $total;
     }
 
-    /** Total quantity across all items (for the header cart badge). */
+    /** Total quantity across all cart lines (for the header badge). No DB needed. */
     public static function getCount()
     {
         if (empty($_SESSION['cart'])) {
@@ -65,29 +69,56 @@ class Cart
         return array_sum($_SESSION['cart']);
     }
 
-    /** Add a product to the cart, clamped to available stock. */
-    public static function add($productId, $quantity, $maxStock)
+    /**
+     * Adds a quantity to a product's cart line, capped at available stock.
+     * Returns true on success, false if the product doesn't exist / is inactive / has no stock.
+     */
+    public static function addItem($productId, $qty, Database $db)
     {
         $productId = (int) $productId;
-        $quantity = max(1, (int) $quantity);
+        $qty = max(1, (int) $qty);
+
+        $product = $db->fetchOne(
+            "SELECT id, stock FROM products WHERE id = ? AND status = 1",
+            [$productId],
+            'i'
+        );
+
+        if (!$product) {
+            return false;
+        }
 
         $current = $_SESSION['cart'][$productId] ?? 0;
-        $newQty = min($current + $quantity, $maxStock);
+        $newQty = min($current + $qty, (int) $product['stock']);
 
         if ($newQty <= 0) {
+            return false;
+        }
+
+        $_SESSION['cart'][$productId] = $newQty;
+        return true;
+    }
+
+    /** Sets an exact quantity (used by the cart page's quantity inputs). Removes the line if 0 or less. */
+    public static function updateItem($productId, $qty)
+    {
+        $productId = (int) $productId;
+        $qty = (int) $qty;
+
+        if ($qty <= 0) {
             unset($_SESSION['cart'][$productId]);
         } else {
-            $_SESSION['cart'][$productId] = $newQty;
+            $_SESSION['cart'][$productId] = $qty;
         }
     }
 
-    public static function remove($productId)
+    public static function removeItem($productId)
     {
         unset($_SESSION['cart'][(int) $productId]);
     }
 
-    public static function clear()
+    public static function clearCart()
     {
-        $_SESSION['cart'] = [];
+        unset($_SESSION['cart']);
     }
 }

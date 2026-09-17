@@ -34,8 +34,7 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="intro-slider-container mb-5">
-    <div class="intro-slider owl-carousel owl-theme owl-nav-inside owl-light" data-toggle="owl"
-        data-owl-options='{
+    <div class="intro-slider owl-carousel owl-theme owl-nav-inside owl-light" data-toggle="owl" data-owl-options='{
             "dots": true,
             "nav": false,
             "responsive": {
@@ -68,20 +67,22 @@ require __DIR__ . '/../includes/header.php';
     <h2 class="title text-center mb-4">Shop by Category</h2>
 
     <?php if (empty($showcaseCategories)): ?>
-    <p class="text-center">No categories yet — add some from the admin panel.</p>
+        <p class="text-center">No categories yet — add some from the admin panel.</p>
     <?php else: ?>
-    <div class="row justify-content-center">
-        <?php foreach ($showcaseCategories as $cat): ?>
-        <div class="col-6 col-md-4 col-lg-2 mb-4 text-center">
-            <a href="products.php?category=<?php echo urlencode($cat['slug']); ?>" class="d-block">
-                <?php if (!empty($cat['image'])): ?>
-                <img src="uploads/categories/<?php echo htmlspecialchars($cat['image']); ?>" alt="<?php echo htmlspecialchars($cat['name']); ?>" class="img-fluid rounded mb-2" style="aspect-ratio: 1 / 1; object-fit: cover;">
-                <?php endif; ?>
-                <span><?php echo htmlspecialchars($cat['name']); ?></span>
-            </a>
+        <div class="row justify-content-center">
+            <?php foreach ($showcaseCategories as $cat): ?>
+                <div class="col-6 col-md-4 col-lg-2 mb-4 text-center">
+                    <a href="products.php?category=<?php echo urlencode($cat['slug']); ?>" class="d-block">
+                        <?php if (!empty($cat['image'])): ?>
+                            <img src="uploads/categories/<?php echo htmlspecialchars($cat['image']); ?>"
+                                alt="<?php echo htmlspecialchars($cat['name']); ?>" class="img-fluid rounded mb-2"
+                                style="aspect-ratio: 1 / 1; object-fit: cover;">
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($cat['name']); ?></span>
+                    </a>
+                </div>
+            <?php endforeach; ?>
         </div>
-        <?php endforeach; ?>
-    </div>
     <?php endif; ?>
 </div><!-- End .container -->
 
@@ -89,21 +90,21 @@ require __DIR__ . '/../includes/header.php';
     <h2 class="title text-center mb-4">New Arrivals</h2>
 
     <?php if (empty($newArrivals)): ?>
-    <p class="text-center">No products yet — add some from the admin panel.</p>
+        <p class="text-center">No products yet — add some from the admin panel.</p>
     <?php else: ?>
-    <div class="row">
-        <?php foreach ($newArrivals as $product): ?>
-        <div class="col-6 col-md-4 col-lg-3 mb-4">
-            <?php require __DIR__ . '/../includes/product-card.php'; ?>
+        <div class="row">
+            <?php foreach ($newArrivals as $product): ?>
+                <div class="col-6 col-md-4 col-lg-3 mb-4">
+                    <?php require __DIR__ . '/../includes/product-card.php'; ?>
+                </div>
+            <?php endforeach; ?>
         </div>
-        <?php endforeach; ?>
-    </div>
 
-    <div class="text-center">
-        <a href="products.php" class="btn btn-outline-primary-2 btn-round">
-            <span>View All Products</span><i class="icon-long-arrow-right"></i>
-        </a>
-    </div>
+        <div class="text-center">
+            <a href="products.php" class="btn btn-outline-primary-2 btn-round">
+                <span>View All Products</span><i class="icon-long-arrow-right"></i>
+            </a>
+        </div>
     <?php endif; ?>
 </div><!-- End .container -->
 

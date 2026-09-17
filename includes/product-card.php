@@ -25,7 +25,7 @@ $inStock = (int) $product['stock'] > 0;
             <span class="product-label label-out">Out of stock</span>
         <?php endif; ?>
 
-        <a href="product-detail.php?slug=<?php echo urlencode($product['slug']); ?>">
+        <a href="product-detail.php?slug=<?php echo urlencode($product['slug']); ?>" class="product-image-link">
             <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
                 alt="<?php echo htmlspecialchars($product['name']); ?>" class="product-image">
         </a>
