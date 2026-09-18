@@ -4,14 +4,12 @@
  * ------------------------------------------------
  * Requires login (an order needs a user_id).
  *
- * COD is handled right here via a normal form POST.
- * PayPal is handled by JS calling paypal-create-order.php
- * and paypal-capture-order.php — this page's own POST handler
- * below only ever runs for COD orders.
+ * All payment methods are handled here. JazzCash and Easypaisa are local
+ * sandbox simulations and do not contact a real payment gateway.
  */
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/paypal.php';
+require_once __DIR__ . '/../config/payments.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -42,10 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $v->required($shippingAddress, 'shipping_address', 'shipping address')
         ->required($paymentMethod, 'payment_method', 'payment method');
 
-    // This form only ever handles COD — PayPal orders are placed via the
-    // PayPal buttons below, which call paypal-capture-order.php directly.
-    if ($paymentMethod !== '' && $paymentMethod !== 'cod') {
-        $errors['payment_method'] = 'Please use the PayPal button to pay with PayPal, or choose Cash on Delivery.';
+    if ($paymentMethod !== '' && !isSupportedPaymentMethod($paymentMethod)) {
+        $errors['payment_method'] = 'Please choose a supported payment method.';
     }
 
     if ($v->passes() && empty($errors)) {
@@ -69,19 +65,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $orderNumber = 'ORD-' . strtoupper(bin2hex(random_bytes(5)));
 
+                $isSandboxPayment = in_array($paymentMethod, ['jazzcash', 'easypaisa'], true);
+                $transactionId = $isSandboxPayment ? createSandboxTransactionId($paymentMethod) : null;
                 $orderId = $db->insert(
-                    'INSERT INTO orders (user_id, order_number, total_amount, payment_method, payment_status, order_status, shipping_address)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    'INSERT INTO orders (user_id, order_number, total_amount, payment_method, payment_status, order_status, transaction_id, shipping_address)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                     [
                         Session::get('user_id'),
                         $orderNumber,
                         $cartTotal,
-                        'cod',
-                        'pending',
+                        $paymentMethod,
+                        $isSandboxPayment ? 'completed' : 'pending',
                         'processing',
+                        $transactionId,
                         $shippingAddress,
                     ],
-                    'isdssss'
+                    'isdsssss'
                 );
 
                 foreach ($cartItems as $item) {
@@ -154,17 +153,24 @@ require __DIR__ . '/../includes/header.php';
                                 <label class="custom-control-label" for="pay_cod">Cash on Delivery</label>
                             </div>
                             <div class="custom-control custom-radio">
-                                <input type="radio" id="pay_paypal" name="payment_method" value="paypal"
+                                <input type="radio" id="pay_jazzcash" name="payment_method" value="jazzcash"
                                     class="custom-control-input">
-                                <label class="custom-control-label" for="pay_paypal">PayPal</label>
+                                <label class="custom-control-label" for="pay_jazzcash">JazzCash
+                                </label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="pay_easypaisa" name="payment_method" value="easypaisa"
+                                    class="custom-control-input">
+                                <label class="custom-control-label" for="pay_easypaisa">Easypaisa
+                                </label>
                             </div>
                         </div>
 
-                        <button type="submit" id="cod-submit-btn" class="btn btn-primary btn-round">
+                        <p class="small text-muted mb-3">Sandbox mode: JazzCash and Easypaisa payments are simulated for
+                            testing. No real money is charged.</p>
+                        <button type="submit" class="btn btn-primary btn-round">
                             <span>Place Order</span><i class="icon-long-arrow-right"></i>
                         </button>
-
-                        <div id="paypal-button-container" class="mt-3" style="display: none; max-width: 300px;"></div>
                     </form>
                 </div>
             </div>
@@ -192,74 +198,5 @@ require __DIR__ . '/../includes/header.php';
         </div>
     </div><!-- End .container -->
 </div><!-- End .storefront-page -->
-
-<?php if (!empty($cartItems)): ?>
-    <script src="https://www.paypal.com/sdk/js?client-id=<?php echo urlencode(PAYPAL_CLIENT_ID); ?>&currency=USD"></script>
-    <script>
-        (function () {
-            var codRadio = document.getElementById('pay_cod');
-            var paypalRadio = document.getElementById('pay_paypal');
-            var codBtn = document.getElementById('cod-submit-btn');
-            var paypalContainer = document.getElementById('paypal-button-container');
-            var addressField = document.getElementById('shipping_address');
-
-            function togglePaymentUI() {
-                if (paypalRadio.checked) {
-                    codBtn.style.display = 'none';
-                    paypalContainer.style.display = 'block';
-                } else {
-                    codBtn.style.display = 'inline-block';
-                    paypalContainer.style.display = 'none';
-                }
-            }
-
-            codRadio.addEventListener('change', togglePaymentUI);
-            paypalRadio.addEventListener('change', togglePaymentUI);
-            togglePaymentUI();
-
-            if (window.paypal) {
-                paypal.Buttons({
-                    createOrder: function () {
-                        return fetch('paypal-create-order.php', { method: 'POST' })
-                            .then(function (res) { return res.json(); })
-                            .then(function (data) {
-                                if (data.error) {
-                                    alert(data.error);
-                                    throw new Error(data.error);
-                                }
-                                return data.id;
-                            });
-                    },
-                    onApprove: function (data) {
-                        if (!addressField.value.trim()) {
-                            alert('Please enter a shipping address before paying.');
-                            throw new Error('Missing shipping address');
-                        }
-                        return fetch('paypal-capture-order.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                orderID: data.orderID,
-                                shipping_address: addressField.value
-                            })
-                        })
-                            .then(function (res) { return res.json(); })
-                            .then(function (result) {
-                                if (result.error) {
-                                    alert(result.error);
-                                    return;
-                                }
-                                window.location.href = result.redirect;
-                            });
-                    },
-                    onError: function (err) {
-                        alert('PayPal encountered an error. Please try again.');
-                        console.error(err);
-                    }
-                }).render('#paypal-button-container');
-            }
-        })();
-    </script>
-<?php endif; ?>
 
 <?php require __DIR__ . '/../includes/footer.php'; ?>

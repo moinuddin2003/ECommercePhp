@@ -14007,14 +14007,6 @@ button:focus {
 .accordion-summary .card-body {
   padding: 0.4rem 0 0.8rem 3rem;
 }
-.paypal-link {
-  cursor: pointer;
-  margin-top: 0.2rem;
-}
-.paypal-link:hover,
-.paypal-link:focus {
-  color: #c96 !important;
-}
 @media screen and (min-width: 992px) {
   .summary {
     margin-top: 0;
