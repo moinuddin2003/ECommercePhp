@@ -58,16 +58,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Admin Login - MyStore</title>
-    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
+    <link rel="stylesheet" type="text/css"
+        href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
     <link href="assets/css/nucleo-icons.css" rel="stylesheet" />
     <link href="assets/css/nucleo-svg.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link id="pagestyle" href="assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
 </head>
 
 <body class="bg-gray-100">
     <main class="main-content mt-0">
-        <div class="page-header align-items-start min-vh-100" style="background-image: linear-gradient(135deg, #42424a 0%, #191919 100%);">
+        <div class="page-header align-items-start min-vh-100"
+            style="background-image: linear-gradient(135deg, #42424a 0%, #191919 100%);">
             <span class="mask bg-gradient-dark opacity-6"></span>
             <div class="container my-auto">
                 <div class="row">
@@ -80,24 +83,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="card-body">
                                 <?php if (!empty($errors)): ?>
-                                <div class="alert alert-danger text-white">
-                                    <?php foreach ($errors as $error): ?>
-                                    <div><?php echo htmlspecialchars($error); ?></div>
-                                    <?php endforeach; ?>
-                                </div>
+                                    <div class="alert alert-danger text-white">
+                                        <?php foreach ($errors as $error): ?>
+                                            <div><?php echo htmlspecialchars($error); ?></div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 <?php endif; ?>
 
                                 <form role="form" method="post" action="login.php">
                                     <div class="input-group input-group-outline my-3">
                                         <label class="form-label">Email</label>
-                                        <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                                        <input type="email" name="email" class="form-control"
+                                            value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                                     </div>
                                     <div class="input-group input-group-outline mb-3">
                                         <label class="form-label">Password</label>
                                         <input type="password" name="password" class="form-control">
                                     </div>
                                     <div class="text-center">
-                                        <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Sign in</button>
+                                        <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Sign
+                                            in</button>
                                     </div>
                                 </form>
                             </div>
@@ -111,6 +116,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/js/core/popper.min.js"></script>
     <script src="assets/js/core/bootstrap.min.js"></script>
     <script src="assets/js/material-dashboard.min.js?v=3.2.0"></script>
+    <script>
+        document.querySelectorAll('.input-group-outline').forEach(function (group) {
+            var input = group.querySelector('.form-control');
+            var syncFilledState = function () {
+                group.classList.toggle('is-filled', input.value.trim() !== '');
+            };
+
+            input.addEventListener('focus', function () {
+                group.classList.add('is-focused');
+            });
+            input.addEventListener('blur', function () {
+                group.classList.remove('is-focused');
+                syncFilledState();
+            });
+            input.addEventListener('input', syncFilledState);
+            syncFilledState();
+        });
+    </script>
 </body>
 
 </html>

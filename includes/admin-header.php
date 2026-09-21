@@ -37,7 +37,7 @@ function navActive($key, $activeNav)
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title><?php echo htmlspecialchars($pageTitle ?? 'Admin'); ?> - MyStore Admin</title>
+    <title><?php echo htmlspecialchars($pageTitle ?? 'Admin'); ?> - Admin Panel</title>
 
     <link rel="stylesheet" type="text/css"
         href="https://fonts.googleapis.com/css?family=Inter:300,400,500,600,700,900" />
@@ -57,7 +57,7 @@ function navActive($key, $activeNav)
         id="sidenav-main">
         <div class="sidenav-header">
             <a class="navbar-brand px-4 py-3 m-0" href="<?php echo $adminRoot; ?>index.php">
-                <span class="ms-1 font-weight-bold">MyStore Admin</span>
+                <span class="ms-1 font-weight-bold">Admin Panel</span>
             </a>
         </div>
 
