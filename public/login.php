@@ -70,7 +70,8 @@ require __DIR__ . '/../includes/header.php';
             <form action="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>" method="post">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                    <input type="email" id="email" name="email" class="form-control"
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
                 </div>
 
                 <div class="form-group">
