@@ -90,8 +90,10 @@ require __DIR__ . '/../includes/header.php';
             ?>
 
             <div class="confirmation-hero text-center mb-4">
-                <div class="confirmation-check"><i class="<?php echo $orderCancelled ? 'icon-close' : 'icon-check'; ?>"></i></div>
-                <span class="eyebrow"><?php echo $orderCancelled ? 'Order cancelled' : ($paymentConfirmed ? 'Order confirmed' : 'Payment pending'); ?></span>
+                <div class="confirmation-check"><i class="<?php echo $orderCancelled ? 'icon-close' : 'icon-check'; ?>"></i>
+                </div>
+                <span
+                    class="eyebrow"><?php echo $orderCancelled ? 'Order cancelled' : ($paymentConfirmed ? 'Order confirmed' : 'Payment pending'); ?></span>
                 <h1 class="title">
                     <?php echo $orderCancelled ? 'This order was cancelled' : ($paymentConfirmed ? 'Thank you for your order!' : 'Waiting for payment confirmation'); ?>
                 </h1>

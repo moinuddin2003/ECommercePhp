@@ -51,38 +51,39 @@ require __DIR__ . '/../includes/header.php';
                 <p>You haven't placed any orders yet. <a href="products.php">Start shopping</a>.</p>
             <?php else: ?>
                 <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Order #</th>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($orders as $order): ?>
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td><?php echo htmlspecialchars($order['order_number']); ?></td>
-                                <td><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
-                                <td>$<?php echo number_format($order['total_amount'], 2); ?></td>
-                                <td><?php echo htmlspecialchars(paymentMethodLabel($order['payment_method'])); ?><br>
-                                    <span class="text-muted small"><?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?></span>
-                                </td>
-                                <td><span
-                                        class="badge badge-secondary"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span>
-                                </td>
-                                <td><a href="order-confirmation.php?<?php echo htmlspecialchars(http_build_query([
-                                    'order' => $order['order_number'],
-                                    'session_id' => $order['payment_method'] === 'stripe' ? $order['transaction_id'] : null,
-                                ])); ?>">View</a>
-                                </td>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th></th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($orders as $order): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($order['order_number']); ?></td>
+                                    <td><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
+                                    <td>$<?php echo number_format($order['total_amount'], 2); ?></td>
+                                    <td><?php echo htmlspecialchars(paymentMethodLabel($order['payment_method'])); ?><br>
+                                        <span
+                                            class="text-muted small"><?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?></span>
+                                    </td>
+                                    <td><span
+                                            class="badge badge-secondary"><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></span>
+                                    </td>
+                                    <td><a href="order-confirmation.php?<?php echo htmlspecialchars(http_build_query([
+                                        'order' => $order['order_number'],
+                                        'session_id' => $order['payment_method'] === 'stripe' ? $order['transaction_id'] : null,
+                                    ])); ?>">View</a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             <?php endif; ?>
         </div>

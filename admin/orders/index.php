@@ -119,13 +119,14 @@ if ($flashSuccess): ?>
                                         class="text-secondary"><?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?></span>
                                 </td>
                                 <td>
-                                        <form action="index.php" method="post" class="d-inline-flex align-items-center gap-2 flex-nowrap"><input
-                                            type="hidden" name="action" value="update_status"><input type="hidden" name="id"
+                                    <form action="index.php" method="post"
+                                        class="d-inline-flex align-items-center gap-2 flex-nowrap"><input type="hidden"
+                                            name="action" value="update_status"><input type="hidden" name="id"
                                             value="<?php echo (int) $order['id']; ?>"><input type="hidden" name="csrf_token"
-                                            value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
-                                            class="form-control form-control-sm px-2"
+                                            value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select
+                                            name="order_status" class="form-control form-control-sm px-2"
                                             style="width: 9rem; min-width: 9rem; flex: 0 0 9rem; border: 1px solid #d2d6da; border-radius: 0.35rem;"><?php foreach ($allowedStatuses as $status): ?>
-                                                <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?> <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
+                                                <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>             <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
                                         </select><button type="submit"
                                             class="btn btn-link text-primary text-xs font-weight-bold p-0 m-0"
                                             style="flex: 0 0 auto; white-space: nowrap;">Save</button>

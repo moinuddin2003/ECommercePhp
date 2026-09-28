@@ -23,7 +23,7 @@ Auth::requireAdmin('login.php');
 // for any day that had no orders at all.
 // ---------------------------------------------------------------
 $weeklyRows = $db->fetchAll(
-  "SELECT DATE(created_at) AS day, COUNT(*) AS orders,
+    "SELECT DATE(created_at) AS day, COUNT(*) AS orders,
           SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      WHERE created_at >= NOW() - INTERVAL 7 DAY
@@ -31,19 +31,19 @@ $weeklyRows = $db->fetchAll(
 );
 $weeklyByDate = [];
 foreach ($weeklyRows as $row) {
-  $weeklyByDate[$row['day']] = $row;
+    $weeklyByDate[$row['day']] = $row;
 }
 
 $weeklyLabels = [];
 $weeklySales = [];
 $weeklyTable = [];
 for ($i = 6; $i >= 0; $i--) {
-  $date = date('Y-m-d', strtotime("-$i days"));
-  $label = date('D, M j', strtotime($date));
-  $row = $weeklyByDate[$date] ?? ['orders' => 0, 'sales' => 0];
-  $weeklyLabels[] = date('D', strtotime($date));
-  $weeklySales[] = (float) $row['sales'];
-  $weeklyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $label = date('D, M j', strtotime($date));
+    $row = $weeklyByDate[$date] ?? ['orders' => 0, 'sales' => 0];
+    $weeklyLabels[] = date('D', strtotime($date));
+    $weeklySales[] = (float) $row['sales'];
+    $weeklyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
 }
 $weeklyTotal = array_sum($weeklySales);
 
@@ -52,7 +52,7 @@ $weeklyTotal = array_sum($weeklySales);
 // $0 / 0 orders for months with no orders (Jan through current month).
 // ---------------------------------------------------------------
 $monthlyRows = $db->fetchAll(
-  "SELECT MONTH(created_at) AS month_num, COUNT(*) AS orders,
+    "SELECT MONTH(created_at) AS month_num, COUNT(*) AS orders,
           SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      WHERE YEAR(created_at) = YEAR(CURDATE())
@@ -60,7 +60,7 @@ $monthlyRows = $db->fetchAll(
 );
 $monthlyByNum = [];
 foreach ($monthlyRows as $row) {
-  $monthlyByNum[(int) $row['month_num']] = $row;
+    $monthlyByNum[(int) $row['month_num']] = $row;
 }
 
 $currentMonth = (int) date('n');
@@ -68,11 +68,11 @@ $monthlyLabels = [];
 $monthlySales = [];
 $monthlyTable = [];
 for ($m = 1; $m <= $currentMonth; $m++) {
-  $row = $monthlyByNum[$m] ?? ['orders' => 0, 'sales' => 0];
-  $label = date('F', mktime(0, 0, 0, $m, 1));
-  $monthlyLabels[] = date('M', mktime(0, 0, 0, $m, 1));
-  $monthlySales[] = (float) $row['sales'];
-  $monthlyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+    $row = $monthlyByNum[$m] ?? ['orders' => 0, 'sales' => 0];
+    $label = date('F', mktime(0, 0, 0, $m, 1));
+    $monthlyLabels[] = date('M', mktime(0, 0, 0, $m, 1));
+    $monthlySales[] = (float) $row['sales'];
+    $monthlyTable[] = ['label' => $label, 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
 }
 $monthlyTotal = array_sum($monthlySales);
 
@@ -80,7 +80,7 @@ $monthlyTotal = array_sum($monthlySales);
 // YEARLY — every year that has at least one order.
 // ---------------------------------------------------------------
 $yearlyRows = $db->fetchAll(
-  "SELECT YEAR(created_at) AS year, COUNT(*) AS orders,
+    "SELECT YEAR(created_at) AS year, COUNT(*) AS orders,
           SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      GROUP BY year
@@ -90,9 +90,9 @@ $yearlyLabels = [];
 $yearlySales = [];
 $yearlyTable = [];
 foreach ($yearlyRows as $row) {
-  $yearlyLabels[] = (string) $row['year'];
-  $yearlySales[] = (float) $row['sales'];
-  $yearlyTable[] = ['label' => (string) $row['year'], 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
+    $yearlyLabels[] = (string) $row['year'];
+    $yearlySales[] = (float) $row['sales'];
+    $yearlyTable[] = ['label' => (string) $row['year'], 'orders' => (int) $row['orders'], 'sales' => (float) $row['sales']];
 }
 $yearlyTotal = array_sum($yearlySales);
 
@@ -113,20 +113,24 @@ require __DIR__ . '/../includes/admin-header.php';
 
 <div class="mb-4">
     <h3 class="mb-1 h4 font-weight-bolder">Sales Analytics &amp; Reports</h3>
-    <p class="mb-0 text-sm">Weekly, monthly, and yearly sales summaries, plus category, payment, and inventory breakdowns.</p>
+    <p class="mb-0 text-sm">Weekly, monthly, and yearly sales summaries, plus category, payment, and inventory
+        breakdowns.</p>
 </div>
 
 <div class="card mb-4">
     <div class="card-header pb-0">
         <ul class="nav nav-tabs" id="salesReportTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link active" id="weekly-tab" data-bs-toggle="tab" href="#weekly-pane" role="tab" aria-selected="true">Weekly</a>
+                <a class="nav-link active" id="weekly-tab" data-bs-toggle="tab" href="#weekly-pane" role="tab"
+                    aria-selected="true">Weekly</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" id="monthly-tab" data-bs-toggle="tab" href="#monthly-pane" role="tab" aria-selected="false">Monthly</a>
+                <a class="nav-link" id="monthly-tab" data-bs-toggle="tab" href="#monthly-pane" role="tab"
+                    aria-selected="false">Monthly</a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" id="yearly-tab" data-bs-toggle="tab" href="#yearly-pane" role="tab" aria-selected="false">Yearly</a>
+                <a class="nav-link" id="yearly-tab" data-bs-toggle="tab" href="#yearly-pane" role="tab"
+                    aria-selected="false">Yearly</a>
             </li>
         </ul>
     </div>
@@ -138,7 +142,8 @@ require __DIR__ . '/../includes/admin-header.php';
             <div class="tab-pane fade show active" id="weekly-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-lg-7">
-                        <p class="text-sm mb-2">Last 7 days &middot; Total: <strong>$<?php echo number_format($weeklyTotal, 2); ?></strong></p>
+                        <p class="text-sm mb-2">Last 7 days &middot; Total:
+                            <strong>$<?php echo number_format($weeklyTotal, 2); ?></strong></p>
                         <div class="chart"><canvas id="weekly-chart" height="180"></canvas></div>
                     </div>
                     <div class="col-lg-5">
@@ -146,18 +151,22 @@ require __DIR__ . '/../includes/admin-header.php';
                             <table class="table align-items-center mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Day</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Day
+                                        </th>
                                         <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">
+                                            Sales</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($weeklyTable as $row): ?>
-                                      <tr>
-                                          <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
-                                          <td class="text-xs"><?php echo $row['orders']; ?></td>
-                                          <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
-                                      </tr>
+                                        <tr>
+                                            <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                            <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                            <td class="text-xs text-end pe-2">
+                                                $<?php echo number_format($row['sales'], 2); ?></td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                                 <tfoot>
@@ -177,7 +186,8 @@ require __DIR__ . '/../includes/admin-header.php';
             <div class="tab-pane fade" id="monthly-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-lg-7">
-                        <p class="text-sm mb-2"><?php echo date('Y'); ?> so far &middot; Total: <strong>$<?php echo number_format($monthlyTotal, 2); ?></strong></p>
+                        <p class="text-sm mb-2"><?php echo date('Y'); ?> so far &middot; Total:
+                            <strong>$<?php echo number_format($monthlyTotal, 2); ?></strong></p>
                         <div class="chart"><canvas id="monthly-chart" height="180"></canvas></div>
                     </div>
                     <div class="col-lg-5">
@@ -185,18 +195,22 @@ require __DIR__ . '/../includes/admin-header.php';
                             <table class="table align-items-center mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Month</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Month
+                                        </th>
                                         <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">
+                                            Sales</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php foreach ($monthlyTable as $row): ?>
-                                      <tr>
-                                          <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
-                                          <td class="text-xs"><?php echo $row['orders']; ?></td>
-                                          <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
-                                      </tr>
+                                        <tr>
+                                            <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                            <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                            <td class="text-xs text-end pe-2">
+                                                $<?php echo number_format($row['sales'], 2); ?></td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                                 <tfoot>
@@ -216,7 +230,8 @@ require __DIR__ . '/../includes/admin-header.php';
             <div class="tab-pane fade" id="yearly-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-lg-7">
-                        <p class="text-sm mb-2">All time &middot; Total: <strong>$<?php echo number_format($yearlyTotal, 2); ?></strong></p>
+                        <p class="text-sm mb-2">All time &middot; Total:
+                            <strong>$<?php echo number_format($yearlyTotal, 2); ?></strong></p>
                         <div class="chart"><canvas id="yearly-chart" height="180"></canvas></div>
                     </div>
                     <div class="col-lg-5">
@@ -224,22 +239,28 @@ require __DIR__ . '/../includes/admin-header.php';
                             <table class="table align-items-center mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Year</th>
+                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder ps-2">Year
+                                        </th>
                                         <th class="text-uppercase text-secondary text-xs font-weight-bolder">Orders</th>
-                                        <th class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">Sales</th>
+                                        <th
+                                            class="text-uppercase text-secondary text-xs font-weight-bolder text-end pe-2">
+                                            Sales</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (empty($yearlyTable)): ?>
-                                      <tr><td class="ps-2 text-xs" colspan="3">No orders yet.</td></tr>
-                                    <?php else: ?>
-                                      <?php foreach ($yearlyTable as $row): ?>
                                         <tr>
-                                            <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
-                                            <td class="text-xs"><?php echo $row['orders']; ?></td>
-                                            <td class="text-xs text-end pe-2">$<?php echo number_format($row['sales'], 2); ?></td>
+                                            <td class="ps-2 text-xs" colspan="3">No orders yet.</td>
                                         </tr>
-                                      <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <?php foreach ($yearlyTable as $row): ?>
+                                            <tr>
+                                                <td class="ps-2 text-xs"><?php echo htmlspecialchars($row['label']); ?></td>
+                                                <td class="text-xs"><?php echo $row['orders']; ?></td>
+                                                <td class="text-xs text-end pe-2">
+                                                    $<?php echo number_format($row['sales'], 2); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
                                 </tbody>
                                 <tfoot>
@@ -270,13 +291,17 @@ require __DIR__ . '/../includes/admin-header.php';
                     <table class="table align-items-center mb-0">
                         <tbody>
                             <?php foreach ($orderStatuses as $row): ?>
-                              <tr>
-                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars(ucfirst($row['order_status'])); ?></td>
-                                  <td class="text-end pe-3 font-weight-bold text-xs"><?php echo (int) $row['total']; ?></td>
-                              </tr>
+                                <tr>
+                                    <td class="ps-3 text-xs"><?php echo htmlspecialchars(ucfirst($row['order_status'])); ?>
+                                    </td>
+                                    <td class="text-end pe-3 font-weight-bold text-xs"><?php echo (int) $row['total']; ?>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                             <?php if (empty($orderStatuses)): ?>
-                              <tr><td class="ps-3 text-xs">No orders yet.</td></tr>
+                                <tr>
+                                    <td class="ps-3 text-xs">No orders yet.</td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -295,13 +320,15 @@ require __DIR__ . '/../includes/admin-header.php';
                     <table class="table align-items-center mb-0">
                         <tbody>
                             <?php foreach ($categorySales as $row): ?>
-                              <tr>
-                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars($row['name']); ?></td>
-                                  <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
-                              </tr>
+                                <tr>
+                                    <td class="ps-3 text-xs"><?php echo htmlspecialchars($row['name']); ?></td>
+                                    <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
+                                </tr>
                             <?php endforeach; ?>
                             <?php if (empty($categorySales)): ?>
-                              <tr><td class="ps-3 text-xs">No categories yet.</td></tr>
+                                <tr>
+                                    <td class="ps-3 text-xs">No categories yet.</td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -320,13 +347,17 @@ require __DIR__ . '/../includes/admin-header.php';
                     <table class="table align-items-center mb-0">
                         <tbody>
                             <?php foreach ($paymentMethods as $row): ?>
-                              <tr>
-                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars(paymentMethodLabel($row['payment_method'])); ?> (<?php echo (int) $row['total']; ?>)</td>
-                                  <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
-                              </tr>
+                                <tr>
+                                    <td class="ps-3 text-xs">
+                                        <?php echo htmlspecialchars(paymentMethodLabel($row['payment_method'])); ?>
+                                        (<?php echo (int) $row['total']; ?>)</td>
+                                    <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
+                                </tr>
                             <?php endforeach; ?>
                             <?php if (empty($paymentMethods)): ?>
-                              <tr><td class="ps-3 text-xs">No payment data yet.</td></tr>
+                                <tr>
+                                    <td class="ps-3 text-xs">No payment data yet.</td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -353,14 +384,17 @@ require __DIR__ . '/../includes/admin-header.php';
                 </thead>
                 <tbody>
                     <?php foreach ($lowStock as $product): ?>
-                      <tr>
-                          <td class="ps-3 text-xs"><?php echo htmlspecialchars($product['name']); ?></td>
-                          <td class="text-xs"><?php echo (int) $product['stock']; ?></td>
-                          <td><a href="products/edit.php?id=<?php echo (int) $product['id']; ?>" class="text-xs font-weight-bold">Edit product</a></td>
-                      </tr>
+                        <tr>
+                            <td class="ps-3 text-xs"><?php echo htmlspecialchars($product['name']); ?></td>
+                            <td class="text-xs"><?php echo (int) $product['stock']; ?></td>
+                            <td><a href="products/edit.php?id=<?php echo (int) $product['id']; ?>"
+                                    class="text-xs font-weight-bold">Edit product</a></td>
+                        </tr>
                     <?php endforeach; ?>
                     <?php if (empty($lowStock)): ?>
-                      <tr><td class="ps-3 text-xs">Inventory looks healthy.</td></tr>
+                        <tr>
+                            <td class="ps-3 text-xs">Inventory looks healthy.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>

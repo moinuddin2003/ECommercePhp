@@ -106,11 +106,13 @@ if ($flashSuccess): ?>
                 <h6>Update Status</h6>
             </div>
             <div class="card-body">
-                <form method="post" action="detail.php?id=<?php echo $id; ?>"><input type="hidden" name="action" value="update_status"><input type="hidden" name="id"
-                    value="<?php echo $id; ?>"><input type="hidden" name="csrf_token"
-                    value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
+                <form method="post" action="detail.php?id=<?php echo $id; ?>"><input type="hidden" name="action"
+                        value="update_status"><input type="hidden" name="id" value="<?php echo $id; ?>"><input
+                        type="hidden" name="csrf_token"
+                        value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
                         class="form-control mb-3"><?php foreach ($allowedStatuses as $status): ?>
-                            <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?> <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
+                            <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>     <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?>
+                            </option><?php endforeach; ?>
                     </select><button type="submit" class="btn bg-gradient-dark">Save Status</button></form>
             </div>
         </div>
@@ -128,7 +130,8 @@ if ($flashSuccess): ?>
                 <?php if ($order['payment_method'] === 'cod' && $order['payment_status'] === 'pending' && $order['order_status'] === 'delivered'): ?>
                     <form method="post" action="detail.php?id=<?php echo $id; ?>" class="mt-3">
                         <input type="hidden" name="action" value="mark_cash_collected">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Session::csrfToken()); ?>">
+                        <input type="hidden" name="csrf_token"
+                            value="<?php echo htmlspecialchars(Session::csrfToken()); ?>">
                         <button type="submit" class="btn btn-sm bg-gradient-dark mb-0">Mark cash collected</button>
                     </form>
                 <?php endif; ?>
