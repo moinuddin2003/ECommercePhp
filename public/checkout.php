@@ -4,8 +4,7 @@
  * ------------------------------------------------
  * Requires login (an order needs a user_id).
  *
- * All payment methods are handled here. JazzCash and Easypaisa are local
- * sandbox simulations and do not contact a real payment gateway.
+ * Card payments use Stripe Checkout in test mode; Cash on Delivery remains available.
  */
 
 require_once __DIR__ . '/../config/database.php';
@@ -20,6 +19,20 @@ $db = new Database($conn);
 Session::start();
 
 Auth::requireLogin('login.php');
+
+if (isset($_GET['cancelled'], $_GET['order'])) {
+    $cancelledOrder = $db->fetchOne(
+        'SELECT id FROM orders WHERE order_number = ? AND user_id = ? AND payment_method = ? AND payment_status = ?',
+        [trim($_GET['order']), Session::get('user_id'), 'stripe', 'pending'],
+        'siss'
+    );
+    if ($cancelledOrder) {
+        releasePendingStripeOrder($db, $conn, $cancelledOrder['id']);
+        Session::flash('error', 'Payment was cancelled. Your cart is unchanged.');
+    }
+    header('Location: checkout.php');
+    exit;
+}
 
 $cartItems = Cart::getItems($db);
 
@@ -43,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($paymentMethod !== '' && !isSupportedPaymentMethod($paymentMethod)) {
         $errors['payment_method'] = 'Please choose a supported payment method.';
     }
+    if ($paymentMethod === 'stripe' && !isStripeSandboxConfigured()) {
+        $errors['payment_method'] = 'Stripe sandbox is not configured. Add your sk_test key to .env.';
+    }
 
     if ($v->passes() && empty($errors)) {
         // Re-check stock right before placing the order — it may have
@@ -58,15 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($outOfStock)) {
             $errors['stock'] = 'Not enough stock for: ' . implode(', ', $outOfStock) . '. Please update your cart.';
         } else {
-            // Everything checks out — place the order inside a transaction so
-            // a failure partway through can't leave a half-written order.
             mysqli_begin_transaction($conn);
+            $transactionOpen = true;
+            $orderId = 0;
 
             try {
                 $orderNumber = 'ORD-' . strtoupper(bin2hex(random_bytes(5)));
-
-                $isSandboxPayment = in_array($paymentMethod, ['jazzcash', 'easypaisa'], true);
-                $transactionId = $isSandboxPayment ? createSandboxTransactionId($paymentMethod) : null;
+                $orderStatus = $paymentMethod === 'cod' ? 'processing' : 'pending';
                 $orderId = $db->insert(
                     'INSERT INTO orders (user_id, order_number, total_amount, payment_method, payment_status, order_status, transaction_id, shipping_address)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -75,37 +89,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $orderNumber,
                         $cartTotal,
                         $paymentMethod,
-                        $isSandboxPayment ? 'completed' : 'pending',
-                        'processing',
-                        $transactionId,
+                        'pending',
+                        $orderStatus,
+                        null,
                         $shippingAddress,
                     ],
                     'isdsssss'
                 );
 
                 foreach ($cartItems as $item) {
+                    $reserved = $db->execute(
+                        'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?',
+                        [$item['quantity'], $item['id'], $item['quantity']],
+                        'iii'
+                    );
+                    if ($reserved !== 1) {
+                        throw new RuntimeException('Stock changed during checkout.');
+                    }
+
                     $db->insert(
                         'INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)',
                         [$orderId, $item['id'], $item['quantity'], $item['price'], $item['subtotal']],
                         'iiidd'
                     );
 
-                    $db->execute(
-                        'UPDATE products SET stock = stock - ? WHERE id = ?',
-                        [$item['quantity'], $item['id']],
-                        'ii'
-                    );
                 }
 
                 mysqli_commit($conn);
+                $transactionOpen = false;
 
-                Cart::clearCart();
+                if ($paymentMethod === 'cod') {
+                    Cart::clearCart();
+                    header('Location: order-confirmation.php?order=' . urlencode($orderNumber));
+                    exit;
+                }
 
-                header('Location: order-confirmation.php?order=' . urlencode($orderNumber));
+                $scriptDirectory = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/public/checkout.php')), '/');
+                if ($scriptDirectory === '.') {
+                    $scriptDirectory = '';
+                }
+                $returnUrl = stripeReturnBaseUrl() . $scriptDirectory;
+                $lineItems = [];
+                foreach ($cartItems as $item) {
+                    $lineItems[] = [
+                        'price_data' => [
+                            'currency' => 'usd',
+                            'unit_amount' => (int) round((float) $item['price'] * 100),
+                            'product_data' => ['name' => $item['name']],
+                        ],
+                        'quantity' => (int) $item['quantity'],
+                    ];
+                }
+
+                try {
+                    $stripeSession = stripeApiRequest('POST', 'checkout/sessions', [
+                        'mode' => 'payment',
+                        'payment_method_types' => ['card'],
+                        'line_items' => $lineItems,
+                        'metadata' => [
+                            'order_number' => $orderNumber,
+                            'user_id' => (string) Session::get('user_id'),
+                        ],
+                        'success_url' => $returnUrl . '/order-confirmation.php?order=' . urlencode($orderNumber) . '&session_id={CHECKOUT_SESSION_ID}',
+                        'cancel_url' => $returnUrl . '/checkout.php?cancelled=1&order=' . urlencode($orderNumber),
+                    ], $orderNumber);
+
+                    $db->execute(
+                        'UPDATE orders SET transaction_id = ? WHERE id = ? AND payment_method = ?',
+                        [$stripeSession['id'], $orderId, 'stripe'],
+                        'sis'
+                    );
+                } catch (Throwable $exception) {
+                    releasePendingStripeOrder($db, $conn, $orderId);
+                    throw $exception;
+                }
+
+                header('Location: ' . $stripeSession['url'], true, 303);
                 exit;
-            } catch (Exception $e) {
-                mysqli_rollback($conn);
-                $errors['general'] = 'Something went wrong placing your order. Please try again.';
+            } catch (Throwable $e) {
+                if ($transactionOpen) {
+                    mysqli_rollback($conn);
+                }
+                if (!$transactionOpen && $orderId > 0 && $paymentMethod === 'stripe') {
+                    releasePendingStripeOrder($db, $conn, $orderId);
+                }
+                $errors['general'] = 'Checkout could not be started. Please try again.';
             }
         }
     } else {
@@ -153,21 +221,15 @@ require __DIR__ . '/../includes/header.php';
                                 <label class="custom-control-label" for="pay_cod">Cash on Delivery</label>
                             </div>
                             <div class="custom-control custom-radio">
-                                <input type="radio" id="pay_jazzcash" name="payment_method" value="jazzcash"
+                                <input type="radio" id="pay_stripe" name="payment_method" value="stripe"
                                     class="custom-control-input">
-                                <label class="custom-control-label" for="pay_jazzcash">JazzCash
-                                </label>
-                            </div>
-                            <div class="custom-control custom-radio">
-                                <input type="radio" id="pay_easypaisa" name="payment_method" value="easypaisa"
-                                    class="custom-control-input">
-                                <label class="custom-control-label" for="pay_easypaisa">Easypaisa
-                                </label>
+                                <label class="custom-control-label" for="pay_stripe">Credit or debit card
+                                    (Stripe)</label>
                             </div>
                         </div>
 
-                        <p class="small text-muted mb-3">Sandbox mode: JazzCash and Easypaisa payments are simulated for
-                            testing. No real money is charged.</p>
+                        <p class="small text-muted mb-3">Stripe sandbox: use test card details only. No real money is
+                            charged.</p>
                         <button type="submit" class="btn btn-primary btn-round">
                             <span>Place Order</span><i class="icon-long-arrow-right"></i>
                         </button>

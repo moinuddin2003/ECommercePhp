@@ -9,6 +9,7 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/payments.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -22,7 +23,8 @@ Auth::requireAdmin('login.php');
 // for any day that had no orders at all.
 // ---------------------------------------------------------------
 $weeklyRows = $db->fetchAll(
-  "SELECT DATE(created_at) AS day, COUNT(*) AS orders, SUM(total_amount) AS sales
+  "SELECT DATE(created_at) AS day, COUNT(*) AS orders,
+          SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      WHERE created_at >= NOW() - INTERVAL 7 DAY
      GROUP BY day"
@@ -50,7 +52,8 @@ $weeklyTotal = array_sum($weeklySales);
 // $0 / 0 orders for months with no orders (Jan through current month).
 // ---------------------------------------------------------------
 $monthlyRows = $db->fetchAll(
-  "SELECT MONTH(created_at) AS month_num, COUNT(*) AS orders, SUM(total_amount) AS sales
+  "SELECT MONTH(created_at) AS month_num, COUNT(*) AS orders,
+          SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      WHERE YEAR(created_at) = YEAR(CURDATE())
      GROUP BY MONTH(created_at)"
@@ -77,7 +80,8 @@ $monthlyTotal = array_sum($monthlySales);
 // YEARLY — every year that has at least one order.
 // ---------------------------------------------------------------
 $yearlyRows = $db->fetchAll(
-  "SELECT YEAR(created_at) AS year, COUNT(*) AS orders, SUM(total_amount) AS sales
+  "SELECT YEAR(created_at) AS year, COUNT(*) AS orders,
+          SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END) AS sales
      FROM orders
      GROUP BY year
      ORDER BY year ASC"
@@ -95,9 +99,9 @@ $yearlyTotal = array_sum($yearlySales);
 // ---------------------------------------------------------------
 // Supporting breakdowns (unchanged from before)
 // ---------------------------------------------------------------
-$categorySales = $db->fetchAll('SELECT c.name, COALESCE(SUM(oi.subtotal), 0) AS sales FROM categories c LEFT JOIN products p ON p.category_id = c.id LEFT JOIN order_items oi ON oi.product_id = p.id GROUP BY c.id, c.name ORDER BY sales DESC');
+$categorySales = $db->fetchAll("SELECT c.name, COALESCE(SUM(CASE WHEN o.id IS NOT NULL THEN oi.subtotal ELSE 0 END), 0) AS sales FROM categories c LEFT JOIN products p ON p.category_id = c.id LEFT JOIN order_items oi ON oi.product_id = p.id LEFT JOIN orders o ON o.id = oi.order_id AND o.payment_status = 'completed' GROUP BY c.id, c.name ORDER BY sales DESC");
 $orderStatuses = $db->fetchAll('SELECT order_status, COUNT(*) AS total FROM orders GROUP BY order_status ORDER BY total DESC');
-$paymentMethods = $db->fetchAll('SELECT payment_method, COUNT(*) AS total, COALESCE(SUM(total_amount), 0) AS sales FROM orders GROUP BY payment_method ORDER BY sales DESC');
+$paymentMethods = $db->fetchAll("SELECT payment_method, COUNT(*) AS total, COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_amount ELSE 0 END), 0) AS sales FROM orders WHERE payment_method IN ('cod', 'stripe') GROUP BY payment_method ORDER BY sales DESC");
 $lowStock = $db->fetchAll('SELECT id, name, stock FROM products WHERE status = 1 AND stock <= 5 ORDER BY stock ASC, name ASC');
 
 $pageTitle = 'Reports';
@@ -317,7 +321,7 @@ require __DIR__ . '/../includes/admin-header.php';
                         <tbody>
                             <?php foreach ($paymentMethods as $row): ?>
                               <tr>
-                                  <td class="ps-3 text-xs"><?php echo strtoupper(htmlspecialchars($row['payment_method'])); ?> (<?php echo (int) $row['total']; ?>)</td>
+                                  <td class="ps-3 text-xs"><?php echo htmlspecialchars(paymentMethodLabel($row['payment_method'])); ?> (<?php echo (int) $row['total']; ?>)</td>
                                   <td class="text-end pe-3 text-xs">$<?php echo number_format($row['sales'], 2); ?></td>
                               </tr>
                             <?php endforeach; ?>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/payments.php';
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Session.php';
 require_once __DIR__ . '/../../core/Auth.php';
@@ -17,14 +18,34 @@ if (!$order) {
 
 $allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Session::validateCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::flash('error', 'Your session expired. Please try again.');
+        header('Location: detail.php?id=' . $id);
+        exit;
+    }
+
+    if (($_POST['action'] ?? '') === 'mark_cash_collected') {
+        $updated = $db->execute(
+            'UPDATE orders SET payment_status = ? WHERE id = ? AND payment_method = ? AND payment_status = ? AND order_status = ?',
+            ['completed', $id, 'cod', 'pending', 'delivered'],
+            'sisss'
+        );
+        if ($updated === 1) {
+            Session::flash('success', 'Cash collection recorded.');
+        } else {
+            Session::flash('error', 'Cash can only be recorded for a delivered COD order that is still unpaid.');
+        }
+        header('Location: detail.php?id=' . $id);
+        exit;
+    }
+
     $orderStatus = $_POST['order_status'] ?? '';
-    if (in_array($orderStatus, $allowedStatuses, true)) {
-        $db->execute('UPDATE orders SET order_status = ? WHERE id = ?', [$orderStatus, $id], 'si');
+    if (updateAdminOrderStatus($db, $conn, $id, $order, $orderStatus)) {
         Session::flash('success', 'Order status updated.');
         header('Location: detail.php?id=' . $id);
         exit;
     }
-    Session::flash('error', 'Invalid order status.');
+    Session::flash('error', 'That status change is not allowed. Follow the next available step; paid orders require a refund before cancellation.');
 }
 
 $items = $db->fetchAll('SELECT oi.quantity, oi.unit_price, oi.subtotal, p.name FROM order_items oi JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?', [$id], 'i');
@@ -85,10 +106,11 @@ if ($flashSuccess): ?>
                 <h6>Update Status</h6>
             </div>
             <div class="card-body">
-                <form method="post" action="detail.php?id=<?php echo $id; ?>"><input type="hidden" name="id"
-                        value="<?php echo $id; ?>"><select name="order_status"
+                <form method="post" action="detail.php?id=<?php echo $id; ?>"><input type="hidden" name="action" value="update_status"><input type="hidden" name="id"
+                    value="<?php echo $id; ?>"><input type="hidden" name="csrf_token"
+                    value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
                         class="form-control mb-3"><?php foreach ($allowedStatuses as $status): ?>
-                            <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
+                            <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?> <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
                     </select><button type="submit" class="btn bg-gradient-dark">Save Status</button></form>
             </div>
         </div>
@@ -100,8 +122,16 @@ if ($flashSuccess): ?>
                 <p class="mb-1"><strong><?php echo htmlspecialchars($order['customer_name']); ?></strong></p>
                 <p><?php echo htmlspecialchars($order['customer_email']); ?></p>
                 <p class="mb-1"><strong>Payment:</strong>
-                    <?php echo strtoupper(htmlspecialchars($order['payment_method'])); ?>
-                    (<?php echo htmlspecialchars($order['payment_status']); ?>)</p>
+                    <?php echo htmlspecialchars(paymentMethodLabel($order['payment_method'])); ?>
+                    (<?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?>)
+                </p>
+                <?php if ($order['payment_method'] === 'cod' && $order['payment_status'] === 'pending' && $order['order_status'] === 'delivered'): ?>
+                    <form method="post" action="detail.php?id=<?php echo $id; ?>" class="mt-3">
+                        <input type="hidden" name="action" value="mark_cash_collected">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(Session::csrfToken()); ?>">
+                        <button type="submit" class="btn btn-sm bg-gradient-dark mb-0">Mark cash collected</button>
+                    </form>
+                <?php endif; ?>
                 <p class="mb-0"><strong>Ship
                         to:</strong><br><?php echo nl2br(htmlspecialchars($order['shipping_address'])); ?></p>
             </div>

@@ -7,9 +7,11 @@
  */
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/payments.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
+require_once __DIR__ . '/../core/Cart.php';
 
 $db = new Database($conn);
 Session::start();
@@ -23,6 +25,36 @@ $order = $orderNumber !== '' ? $db->fetchOne(
     [$orderNumber, Session::get('user_id')],
     'si'
 ) : null;
+
+$checkoutSessionId = trim($_GET['session_id'] ?? '');
+if ($order && $order['payment_method'] === 'stripe' && $order['payment_status'] === 'pending' && $checkoutSessionId !== '') {
+    try {
+        if (!hash_equals((string) $order['transaction_id'], $checkoutSessionId)) {
+            throw new RuntimeException('Stripe session does not match this order.');
+        }
+
+        $checkoutSession = stripeApiRequest('GET', 'checkout/sessions/' . rawurlencode($checkoutSessionId));
+        $metadata = $checkoutSession['metadata'] ?? [];
+        $expectedAmount = (int) round((float) $order['total_amount'] * 100);
+
+        if (
+            ($metadata['order_number'] ?? '') === $orderNumber
+            && (string) ($metadata['user_id'] ?? '') === (string) Session::get('user_id')
+            && (int) ($checkoutSession['amount_total'] ?? 0) === $expectedAmount
+            && ($checkoutSession['currency'] ?? '') === 'usd'
+            && completeStripeOrder($db, $conn, $checkoutSession)
+        ) {
+            Cart::clearCart();
+            $order = $db->fetchOne(
+                'SELECT * FROM orders WHERE order_number = ? AND user_id = ?',
+                [$orderNumber, Session::get('user_id')],
+                'si'
+            );
+        }
+    } catch (Throwable $exception) {
+        error_log('Stripe return verification failed for order ' . $orderNumber . '.');
+    }
+}
 
 $items = [];
 if ($order) {
@@ -52,13 +84,23 @@ require __DIR__ . '/../includes/header.php';
 
         <?php else: ?>
 
+            <?php
+            $orderCancelled = $order['order_status'] === 'cancelled';
+            $paymentConfirmed = !$orderCancelled && ($order['payment_method'] === 'cod' || $order['payment_status'] === 'completed');
+            ?>
+
             <div class="confirmation-hero text-center mb-4">
-                <div class="confirmation-check"><i class="icon-check"></i></div><span class="eyebrow">Order confirmed</span>
-                <h1 class="title">Thank you for your order!</h1>
-                <p>Order <strong><?php echo htmlspecialchars($order['order_number']); ?></strong> has been placed
-                    successfully.</p>
+                <div class="confirmation-check"><i class="<?php echo $orderCancelled ? 'icon-close' : 'icon-check'; ?>"></i></div>
+                <span class="eyebrow"><?php echo $orderCancelled ? 'Order cancelled' : ($paymentConfirmed ? 'Order confirmed' : 'Payment pending'); ?></span>
+                <h1 class="title">
+                    <?php echo $orderCancelled ? 'This order was cancelled' : ($paymentConfirmed ? 'Thank you for your order!' : 'Waiting for payment confirmation'); ?>
+                </h1>
+                <p>Order <strong><?php echo htmlspecialchars($order['order_number']); ?></strong>
+                    <?php echo $orderCancelled ? 'was cancelled. No payment is due.' : ($paymentConfirmed ? 'has been placed successfully.' : 'is not confirmed yet. Refresh this page after completing payment.'); ?>
+                </p>
                 <div class="confirmation-meta"><span>Payment:
-                        <strong><?php echo strtoupper(htmlspecialchars($order['payment_method'])); ?></strong></span><span>Status:
+                        <strong><?php echo htmlspecialchars(paymentMethodLabel($order['payment_method'])); ?></strong>
+                        (<?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?>)</span><span>Status:
                         <strong><?php echo htmlspecialchars(ucfirst($order['order_status'])); ?></strong></span></div>
             </div>
 

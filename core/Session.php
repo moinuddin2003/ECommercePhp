@@ -37,6 +37,23 @@ class Session
         return isset($_SESSION[$key]);
     }
 
+    public static function csrfToken()
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['csrf_token'];
+    }
+
+    public static function validateCsrfToken($token)
+    {
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+
+        return is_string($token) && is_string($sessionToken) && $sessionToken !== ''
+            && hash_equals($sessionToken, $token);
+    }
+
     public static function remove($key)
     {
         unset($_SESSION[$key]);

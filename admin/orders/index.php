@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/payments.php';
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Session.php';
 require_once __DIR__ . '/../../core/Auth.php';
@@ -10,13 +11,23 @@ Auth::requireAdmin('../login.php');
 
 $allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_status') {
+    if (!Session::validateCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::flash('error', 'Your session expired. Please try again.');
+        header('Location: index.php');
+        exit;
+    }
+
     $orderId = (int) ($_POST['id'] ?? 0);
     $newStatus = $_POST['order_status'] ?? '';
-    if ($orderId > 0 && in_array($newStatus, $allowedStatuses, true)) {
-        $db->execute('UPDATE orders SET order_status = ? WHERE id = ?', [$newStatus, $orderId], 'si');
+    $order = $orderId > 0 ? $db->fetchOne(
+        'SELECT id, payment_method, payment_status, order_status FROM orders WHERE id = ?',
+        [$orderId],
+        'i'
+    ) : null;
+    if ($order && updateAdminOrderStatus($db, $conn, $orderId, $order, $newStatus)) {
         Session::flash('success', 'Order status updated.');
     } else {
-        Session::flash('error', 'Invalid order status.');
+        Session::flash('error', 'That status change is not allowed. Follow the next available step; paid orders require a refund before cancellation.');
     }
     header('Location: index.php');
     exit;
@@ -104,18 +115,20 @@ if ($flashSuccess): ?>
                                 <td class="text-xs"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></td>
                                 <td>$<?php echo number_format($order['total_amount'], 2); ?></td>
                                 <td class="text-xs">
-                                    <?php echo strtoupper(htmlspecialchars($order['payment_method'])); ?><br><span
-                                        class="text-secondary"><?php echo htmlspecialchars($order['payment_status']); ?></span>
+                                    <?php echo htmlspecialchars(paymentMethodLabel($order['payment_method'])); ?><br><span
+                                        class="text-secondary"><?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?></span>
                                 </td>
                                 <td>
-                                    <form action="index.php" method="post" class="d-flex align-items-center gap-2"><input
+                                        <form action="index.php" method="post" class="d-inline-flex align-items-center gap-2 flex-nowrap"><input
                                             type="hidden" name="action" value="update_status"><input type="hidden" name="id"
-                                            value="<?php echo (int) $order['id']; ?>"><select name="order_status"
+                                            value="<?php echo (int) $order['id']; ?>"><input type="hidden" name="csrf_token"
+                                            value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
                                             class="form-control form-control-sm px-2"
-                                            style="border: 1px solid #d2d6da; border-radius: 0.35rem; min-width: 120px;"><?php foreach ($allowedStatuses as $status): ?>
-                                                <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
+                                            style="width: 9rem; min-width: 9rem; flex: 0 0 9rem; border: 1px solid #d2d6da; border-radius: 0.35rem;"><?php foreach ($allowedStatuses as $status): ?>
+                                                <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?> <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
                                         </select><button type="submit"
-                                            class="btn btn-link text-primary text-xs font-weight-bold p-0 m-0">Save</button>
+                                            class="btn btn-link text-primary text-xs font-weight-bold p-0 m-0"
+                                            style="flex: 0 0 auto; white-space: nowrap;">Save</button>
                                     </form>
                                 </td>
                             </tr><?php endforeach; ?>

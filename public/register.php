@@ -34,11 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $v = new Validator();
     $v->required($name, 'name')
-      ->required($email, 'email')
-      ->email($email, 'email')
-      ->required($password, 'password')
-      ->minLength($password, 'password', 6)
-      ->matches($confirmPassword, $password, 'confirm_password', 'Passwords do not match');
+        ->required($email, 'email')
+        ->email($email, 'email')
+        ->required($password, 'password')
+        ->minLength($password, 'password', 6)
+        ->matches($confirmPassword, $password, 'confirm_password', 'Passwords do not match');
 
     if ($v->passes()) {
         $result = $auth->register($name, $email, $password);
@@ -67,30 +67,34 @@ require __DIR__ . '/../includes/header.php';
             <h1 class="title text-center mb-4">Create an Account</h1>
 
             <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?php echo htmlspecialchars($error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             <?php endif; ?>
 
-            <form action="register.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>" method="post">
+            <form
+                action="register.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>"
+                method="post">
                 <div class="form-group">
                     <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" class="form-control" value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>" required>
+                    <input type="text" id="name" name="name" class="form-control"
+                        value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                    <input type="email" id="email" name="email" class="form-control"
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" class="form-control" required>
-                    <small class="form-text text-muted">At least 6 characters.</small>
+                    <small class="mb-3 mt-2 form-text text-muted">At least 6 characters.</small>
                 </div>
 
                 <div class="form-group">
@@ -105,7 +109,9 @@ require __DIR__ . '/../includes/header.php';
 
             <p class="text-center mt-3">
                 Already have an account?
-                <a href="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>">Sign in</a>
+                <a
+                    href="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>">Sign
+                    in</a>
             </p>
         </div>
     </div>

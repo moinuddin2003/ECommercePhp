@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/payments.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
@@ -8,7 +9,7 @@ Session::start();
 $db = new Database($conn);
 Auth::requireAdmin('login.php');
 
-$salesRow = $db->fetchOne("SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders WHERE payment_status = 'completed' OR payment_method = 'cod'");
+$salesRow = $db->fetchOne("SELECT COALESCE(SUM(total_amount), 0) AS total FROM orders WHERE payment_status = 'completed'");
 $totalSales = (float) ($salesRow['total'] ?? 0);
 $totalOrders = (int) $db->fetchOne('SELECT COUNT(*) AS total FROM orders')['total'];
 $activeProducts = (int) $db->fetchOne('SELECT COUNT(*) AS total FROM products WHERE status = 1')['total'];
@@ -18,7 +19,7 @@ $lowStockCount = (int) $db->fetchOne('SELECT COUNT(*) AS total FROM products WHE
 $hiddenProducts = (int) $db->fetchOne('SELECT COUNT(*) AS total FROM products WHERE status = 0')['total'];
 $inactiveCustomers = (int) $db->fetchOne("SELECT COUNT(*) AS total FROM users WHERE role = 'customer' AND is_active = 0")['total'];
 
-$weeklyRows = $db->fetchAll("SELECT DATE(created_at) AS day, SUM(total_amount) AS sales FROM orders WHERE created_at >= NOW() - INTERVAL 7 DAY GROUP BY day ORDER BY day ASC");
+$weeklyRows = $db->fetchAll("SELECT DATE(created_at) AS day, SUM(total_amount) AS sales FROM orders WHERE created_at >= NOW() - INTERVAL 7 DAY AND payment_status = 'completed' GROUP BY day ORDER BY day ASC");
 $salesByDate = [];
 foreach ($weeklyRows as $row) {
     $salesByDate[$row['day']] = (float) $row['sales'];
@@ -41,7 +42,7 @@ foreach ($statusRows as $row) {
 
 $recentOrders = $db->fetchAll("SELECT o.id, o.order_number, o.total_amount, o.order_status, o.created_at, u.name AS customer_name FROM orders o JOIN users u ON u.id = o.user_id ORDER BY o.created_at DESC LIMIT 6");
 $lowStockProducts = $db->fetchAll('SELECT id, name, stock FROM products WHERE status = 1 AND stock <= 5 ORDER BY stock ASC, name ASC LIMIT 6');
-$topProducts = $db->fetchAll('SELECT p.id, p.name, SUM(oi.quantity) AS units_sold FROM order_items oi JOIN products p ON p.id = oi.product_id GROUP BY p.id, p.name ORDER BY units_sold DESC LIMIT 5');
+$topProducts = $db->fetchAll("SELECT p.id, p.name, SUM(oi.quantity) AS units_sold FROM order_items oi JOIN products p ON p.id = oi.product_id JOIN orders o ON o.id = oi.order_id WHERE o.payment_status = 'completed' GROUP BY p.id, p.name ORDER BY units_sold DESC LIMIT 5");
 $categories = $db->fetchAll('SELECT c.id, c.name, c.status, COUNT(p.id) AS product_count FROM categories c LEFT JOIN products p ON p.category_id = c.id GROUP BY c.id, c.name, c.status ORDER BY product_count DESC, c.name ASC LIMIT 6');
 $recentCustomers = $db->fetchAll("SELECT name, email, created_at, is_active FROM users WHERE role = 'customer' ORDER BY created_at DESC LIMIT 5");
 
@@ -105,7 +106,7 @@ require __DIR__ . '/../includes/admin-header.php';
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="mb-0">Sales, last 7 days</h6>
-                <p class="text-sm mb-3">Revenue recorded from completed and cash-on-delivery orders.</p>
+                <p class="text-sm mb-3">Revenue from completed payments.</p>
                 <div class="chart"><canvas id="chart-weekly-sales" height="150"></canvas></div>
             </div>
         </div>
