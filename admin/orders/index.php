@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/payments.php';
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Session.php';
 require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/Mailer.php';
 
 Session::start();
 $db = new Database($conn);
@@ -26,6 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     ) : null;
     if ($order && updateAdminOrderStatus($db, $conn, $orderId, $order, $newStatus)) {
         Session::flash('success', 'Order status updated.');
+        if ($newStatus !== $order['order_status'] && in_array($newStatus, ['shipped', 'delivered', 'cancelled'], true)) {
+            sendOrderStatusEmail($db, $orderId, $newStatus);
+        }
     } else {
         Session::flash('error', 'That status change is not allowed. Follow the next available step; paid orders require a refund before cancellation.');
     }

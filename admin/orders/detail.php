@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/payments.php';
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Session.php';
 require_once __DIR__ . '/../../core/Auth.php';
+require_once __DIR__ . '/../../core/Mailer.php';
 
 Session::start();
 $db = new Database($conn);
@@ -42,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $orderStatus = $_POST['order_status'] ?? '';
     if (updateAdminOrderStatus($db, $conn, $id, $order, $orderStatus)) {
         Session::flash('success', 'Order status updated.');
+        if ($orderStatus !== $order['order_status'] && in_array($orderStatus, ['shipped', 'delivered', 'cancelled'], true)) {
+            sendOrderStatusEmail($db, $id, $orderStatus);
+        }
         header('Location: detail.php?id=' . $id);
         exit;
     }

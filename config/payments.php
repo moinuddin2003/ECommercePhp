@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../core/Mailer.php';
+
 function stripeSetting($name)
 {
     $value = getenv($name);
@@ -213,6 +215,9 @@ function completeStripeOrder(Database $db, $connection, $checkoutSession)
             'ssis'
         );
         mysqli_commit($connection);
+        if ($updated === 1) {
+            sendOrderEmail($db, $order['id']);
+        }
         return $updated === 1;
     } catch (Throwable $exception) {
         mysqli_rollback($connection);

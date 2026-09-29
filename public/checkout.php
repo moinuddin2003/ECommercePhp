@@ -120,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($paymentMethod === 'cod') {
                     Cart::clearCart();
+                    sendOrderEmail($db, $orderId);
                     header('Location: order-confirmation.php?order=' . urlencode($orderNumber));
                     exit;
                 }
