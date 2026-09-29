@@ -110,8 +110,6 @@ function navActive($key, $activeNav)
 
         <div class="sidenav-footer position-absolute w-100 bottom-0">
             <div class="mx-3 mb-3">
-                <a class="btn btn-outline-dark w-100" href="<?php echo $adminRoot; ?>../public/index.php"
-                    target="_blank">View Store</a>
                 <a class="btn bg-gradient-dark w-100 text-white" href="<?php echo $adminRoot; ?>logout.php">Logout</a>
             </div>
         </div>
@@ -143,8 +141,9 @@ function navActive($key, $activeNav)
                             </a>
                         </li>
                         <li class="nav-item dropdown pe-3 d-flex align-items-center">
-                            <a href="javascript:;" class="nav-link text-body font-weight-bold px-0" id="adminMenuButton"
-                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <a href="javascript:;"
+                                class="nav-link text-body font-weight-bold px-0 d-inline-flex align-items-center"
+                                id="adminMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="material-symbols-rounded me-1">account_circle</i>
                                 <?php echo htmlspecialchars(Session::get('user_name')); ?>
                             </a>
