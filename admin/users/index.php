@@ -10,7 +10,10 @@ Auth::requireAdmin('../login.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_status') {
     $id = (int) ($_POST['id'] ?? 0);
-    if ($id === (int) Session::get('user_id')) {
+    // Compare against the ADMIN's own id (admin_id), not the shop's
+    // customer_id -- otherwise this check would compare the wrong user
+    // and an admin could lock themselves out by mistake.
+    if ($id === (int) Session::get('admin_id')) {
         Session::flash('error', 'You cannot deactivate your own account.');
     } else {
         $user = $db->fetchOne('SELECT is_active, role FROM users WHERE id = ?', [$id], 'i');

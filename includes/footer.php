@@ -141,7 +141,7 @@
                     <ul class="mobile-menu">
                         <li><a href="index.php">Home</a></li>
                         <li><a href="products.php">Shop</a></li>
-                        <?php if (Auth::isLoggedIn()): ?>
+                        <?php if (Auth::isLoggedIn('customer')): ?>
                             <li><a href="index.php">My Account</a></li>
                             <li><a href="logout.php">Logout</a></li>
                         <?php else: ?>

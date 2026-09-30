@@ -145,7 +145,7 @@ function navActive($key, $activeNav)
                                 class="nav-link text-body font-weight-bold px-0 d-inline-flex align-items-center"
                                 id="adminMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="material-symbols-rounded me-1">account_circle</i>
-                                <?php echo htmlspecialchars(Session::get('user_name')); ?>
+                                <?php echo htmlspecialchars(Session::get('admin_name')); ?>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end px-2 py-3" aria-labelledby="adminMenuButton">
                                 <li>

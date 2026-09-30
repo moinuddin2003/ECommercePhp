@@ -17,14 +17,14 @@ $db = new Database($conn);
 
 Auth::requireLogin('login.php');
 
-$user = $db->fetchOne('SELECT id, name, email, created_at FROM users WHERE id = ?', [Session::get('user_id')], 'i');
+$user = $db->fetchOne('SELECT id, name, email, created_at FROM users WHERE id = ?', [Session::get('customer_id')], 'i');
 
 $orders = $db->fetchAll(
     'SELECT id, order_number, total_amount, payment_method, payment_status, order_status, transaction_id, created_at
      FROM orders
      WHERE user_id = ?
      ORDER BY created_at DESC',
-    [Session::get('user_id')],
+    [Session::get('customer_id')],
     'i'
 );
 

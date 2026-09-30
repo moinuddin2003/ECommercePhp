@@ -17,7 +17,7 @@ Session::start();
 $db = new Database($conn);
 $auth = new Auth($db);
 
-if (Auth::isLoggedIn()) {
+if (Auth::isLoggedIn('customer')) {
     header('Location: index.php');
     exit;
 }
@@ -31,10 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $v = new Validator();
     $v->required($email, 'email')
-      ->required($password, 'password');
+        ->required($password, 'password');
 
     if ($v->passes()) {
-        $result = $auth->login($email, $password);
+        $result = $auth->login($email, $password, 'customer');
 
         if ($result['success']) {
             Session::flash('success', 'Welcome back!');
@@ -58,16 +58,18 @@ require __DIR__ . '/../includes/header.php';
             <h1 class="title text-center mb-4">Sign In</h1>
 
             <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    <?php foreach ($errors as $error): ?>
-                    <li><?php echo htmlspecialchars($error); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?php echo htmlspecialchars($error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             <?php endif; ?>
 
-            <form action="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>" method="post">
+            <form
+                action="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>"
+                method="post">
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" class="form-control"
@@ -86,7 +88,9 @@ require __DIR__ . '/../includes/header.php';
 
             <p class="text-center mt-3">
                 Don't have an account?
-                <a href="register.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>">Create one</a>
+                <a
+                    href="register.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>">Create
+                    one</a>
             </p>
         </div>
     </div>

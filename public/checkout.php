@@ -23,7 +23,7 @@ Auth::requireLogin('login.php');
 if (isset($_GET['cancelled'], $_GET['order'])) {
     $cancelledOrder = $db->fetchOne(
         'SELECT id FROM orders WHERE order_number = ? AND user_id = ? AND payment_method = ? AND payment_status = ?',
-        [trim($_GET['order']), Session::get('user_id'), 'stripe', 'pending'],
+        [trim($_GET['order']), Session::get('customer_id'), 'stripe', 'pending'],
         'siss'
     );
     if ($cancelledOrder) {
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'INSERT INTO orders (user_id, order_number, total_amount, payment_method, payment_status, order_status, transaction_id, shipping_address)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                     [
-                        Session::get('user_id'),
+                        Session::get('customer_id'),
                         $orderNumber,
                         $cartTotal,
                         $paymentMethod,
@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'line_items' => $lineItems,
                         'metadata' => [
                             'order_number' => $orderNumber,
-                            'user_id' => (string) Session::get('user_id'),
+                            'user_id' => (string) Session::get('customer_id'),
                         ],
                         'success_url' => $returnUrl . '/order-confirmation.php?order=' . urlencode($orderNumber) . '&session_id={CHECKOUT_SESSION_ID}',
                         'cancel_url' => $returnUrl . '/checkout.php?cancelled=1&order=' . urlencode($orderNumber),

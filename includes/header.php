@@ -118,7 +118,7 @@ $headerFlashError = Session::flash('error');
                                     </li>
                                     <?php if (Auth::isLoggedIn()): ?>
                                         <li><a href="account.php">Hi,
-                                                <?php echo htmlspecialchars(Session::get('user_name')); ?></a></li>
+                                                <?php echo htmlspecialchars(Session::get('customer_name')); ?></a></li>
                                         <li><a href="logout.php">Logout</a></li>
                                     <?php else: ?>
                                         <li><a href="login.php">Sign in / Sign up</a></li>

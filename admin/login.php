@@ -16,7 +16,10 @@ Session::start();
 $db = new Database($conn);
 $auth = new Auth($db);
 
-if (Auth::isLoggedIn() && Auth::isAdmin()) {
+// Already signed in to the ADMIN panel? Then no need to show this form.
+// Note: it asks about the 'admin' area only. Being signed in as a
+// customer in the shop does not let you skip the admin login.
+if (Auth::isAdminLoggedIn()) {
     header('Location: index.php');
     exit;
 }
@@ -31,24 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $v->required($email, 'email')->required($password, 'password');
 
     if ($v->passes()) {
-        $result = $auth->login($email, $password);
+    $result = $auth->login($email, $password, 'admin');
 
-        if ($result['success'] && Auth::isAdmin()) {
-            header('Location: index.php');
-            exit;
-        }
-
-        if ($result['success'] && !Auth::isAdmin()) {
-            // Logged into a real account, but it's not an admin — log back out.
-            $auth->logout();
-            Session::start();
-            $errors['general'] = 'That account does not have admin access.';
-        } else {
-            $errors['general'] = $result['message'];
-        }
-    } else {
-        $errors = $v->errors();
+    if ($result['success']) {
+        header('Location: index.php');
+        exit;
     }
+
+    $errors['general'] = $result['message'];
+} else {
+    $errors = $v->errors();
+}
 }
 ?>
 <!DOCTYPE html>

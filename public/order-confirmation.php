@@ -22,7 +22,7 @@ $orderNumber = trim($_GET['order'] ?? '');
 
 $order = $orderNumber !== '' ? $db->fetchOne(
     'SELECT * FROM orders WHERE order_number = ? AND user_id = ?',
-    [$orderNumber, Session::get('user_id')],
+    [$orderNumber, Session::get('customer_id')],
     'si'
 ) : null;
 
@@ -39,7 +39,7 @@ if ($order && $order['payment_method'] === 'stripe' && $order['payment_status'] 
 
         if (
             ($metadata['order_number'] ?? '') === $orderNumber
-            && (string) ($metadata['user_id'] ?? '') === (string) Session::get('user_id')
+            && (string) ($metadata['user_id'] ?? '') === (string) Session::get('customer_id')
             && (int) ($checkoutSession['amount_total'] ?? 0) === $expectedAmount
             && ($checkoutSession['currency'] ?? '') === 'usd'
             && completeStripeOrder($db, $conn, $checkoutSession)
@@ -47,7 +47,7 @@ if ($order && $order['payment_method'] === 'stripe' && $order['payment_status'] 
             Cart::clearCart();
             $order = $db->fetchOne(
                 'SELECT * FROM orders WHERE order_number = ? AND user_id = ?',
-                [$orderNumber, Session::get('user_id')],
+                [$orderNumber, Session::get('customer_id')],
                 'si'
             );
         }

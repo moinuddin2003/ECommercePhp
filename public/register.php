@@ -18,7 +18,7 @@ $db = new Database($conn);
 $auth = new Auth($db);
 
 // Already logged in? Nothing to do here.
-if (Auth::isLoggedIn()) {
+if (Auth::isLoggedIn('customer')) {
     header('Location: index.php');
     exit;
 }
