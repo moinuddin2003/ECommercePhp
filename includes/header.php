@@ -42,17 +42,17 @@ $headerFlashError = Session::flash('error');
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title><?php echo htmlspecialchars($pageTitle ?? 'Home'); ?> - MyStore</title>
+    <title><?php echo htmlspecialchars($pageTitle ?? 'Home'); ?> - NexMart</title>
     <meta name="keywords" content="HTML5 Template">
-    <meta name="description" content="MyStore - Online Shop">
+    <meta name="description" content="NexMart - Online Shop">
     <meta name="author" content="p-themes">
     <!-- Favicon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/icons/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/icons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.svg">
     <link rel="manifest" href="assets/images/icons/site.html">
-    <link rel="mask-icon" href="assets/images/icons/safari-pinned-tab.svg" color="#666666">
-    <link rel="shortcut icon" href="assets/images/icons/favicon.ico">
+    <link rel="mask-icon" href="assets/images/favicon.svg" color="#666666">
+    <link rel="shortcut icon" href="assets/images/favicon.svg">
     <meta name="apple-mobile-web-app-title" content="Molla">
     <meta name="application-name" content="Molla">
     <meta name="msapplication-TileColor" content="#cc9966">
@@ -140,7 +140,8 @@ $headerFlashError = Session::flash('error');
                         </button>
 
                         <a href="index.php" class="logo">
-                            <img src="assets/images/demos/demo-4/logo.png" alt="Molla Logo" width="105" height="25">
+                            <img src="/public/assets/images/NexMartLogo.svg" alt="NexMart Logo" width="105" height="50"
+                                object-fit: contain;>
                         </a>
                     </div><!-- End .header-left -->
 

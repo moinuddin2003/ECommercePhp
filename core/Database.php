@@ -50,6 +50,7 @@ class Database
     public function __construct($connection)
     {
         $this->conn = $connection;
+        
     }
 
     /**

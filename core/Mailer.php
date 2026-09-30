@@ -118,7 +118,7 @@ function renderOrderEmail($order, $items, $event)
     }
 
     $details = $events[$event];
-    $shopName = trim((string) stripeSetting('SMTP_FROM_NAME')) ?: 'MyStore';
+    $shopName = trim((string) stripeSetting('SMTP_FROM_NAME')) ?: 'NexMart';
     $itemRows = '';
     foreach ($items as $item) {
         $itemRows .= '<tr>'

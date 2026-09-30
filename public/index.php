@@ -34,6 +34,7 @@ require __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="intro-slider-container mb-5">
+
     <div class="intro-slider owl-carousel owl-theme owl-nav-inside owl-light" data-toggle="owl" data-owl-options='{
             "dots": true,
             "nav": false,
@@ -44,16 +45,32 @@ require __DIR__ . '/../includes/header.php';
                 }
             }
         }'>
-        <div class="intro-slide" style="background-image: url(assets/images/demos/demo-4/slider/slide-1.png);">
+        <div class="intro-slide" style="background-image: url(assets/images/slide-1.png);">
             <div class="container intro-content">
                 <div class="row justify-content-end">
                     <div class="col-auto col-sm-7 col-md-6 col-lg-5">
                         <h3 class="intro-subtitle text-third">Deals and Promotions</h3>
                         <h1 class="intro-title">Welcome to</h1>
-                        <h1 class="intro-title">MyStore</h1>
+                        <h1 class="intro-title">NexMart</h1>
 
                         <a href="products.php" class="btn btn-primary btn-round">
                             <span>Shop Now</span>
+                            <i class="icon-long-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End .intro-slide -->
+
+        <!-- Slide 2 -->
+        <div class="intro-slide" style="background-image: url(assets/images/slide-2.png);">
+            <div class="container intro-content">
+                <div class="row justify-content-end">
+                    <div class="col-auto col-sm-7 col-md-6 col-lg-5">
+                        <h3 class="intro-subtitle text-primary">New Arrival</h3>
+                        <h1 class="intro-title">Latest Products</h1>
+                        <a href="products.php" class="btn btn-primary btn-round">
+                            <span>Shop More</span>
                             <i class="icon-long-arrow-right"></i>
                         </a>
                     </div>

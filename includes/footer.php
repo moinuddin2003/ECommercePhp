@@ -10,8 +10,7 @@
 </main><!-- End .main -->
 
 <footer class="footer">
-    <div class="cta bg-image bg-dark pt-4 pb-5 mb-0"
-        style="background-image: url(assets/images/demos/demo-4/bg-5.jpg);">
+    <div class="cta bg-image bg-dark pt-4 pb-5 mb-0" style="background-image: url(assets/images/bg-footer.jpg);">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-sm-10 col-md-8 col-lg-6">
@@ -40,15 +39,15 @@
             <div class="row">
                 <div class="col-sm-6 col-lg-3">
                     <div class="widget widget-about">
-                        <img src="assets/images/demos/demo-4/logo-footer.png" class="footer-logo" alt="Footer Logo"
-                            width="105" height="25">
+                        <img src="/public/assets/images/NexMartLogo.svg" class="footer-logo" alt="Footer Logo"
+                            width="105" height="50" object-fit: contain;>
                         <p>Praesent dapibus, neque id cursus ucibus, tortor neque egestas augue, eu vulputate magna eros
                             eu erat. </p>
 
                         <div class="widget-call">
                             <i class="icon-phone"></i>
                             Got Question? Call us 24/7
-                            <a href="tel:#">+0123 456 789</a>
+                            <a href="tel:#">+92 3007023265</a>
                         </div><!-- End .widget-call -->
                     </div><!-- End .widget about-widget -->
                 </div><!-- End .col-sm-6 col-lg-3 -->
@@ -76,8 +75,6 @@
                             <li><a href="#">Money-back guarantee!</a></li>
                             <li><a href="#">Returns</a></li>
                             <li><a href="#">Shipping</a></li>
-                            <li><a href="#">Terms and conditions</a></li>
-                            <li><a href="#">Privacy Policy</a></li>
                         </ul><!-- End .widget-list -->
                     </div><!-- End .widget -->
                 </div><!-- End .col-sm-6 col-lg-3 -->
