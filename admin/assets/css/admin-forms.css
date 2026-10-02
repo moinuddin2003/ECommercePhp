@@ -1,0 +1,168 @@
+.admin-fields .form-control {
+  min-height: 2.625rem;
+  padding: 0.625rem 0.75rem;
+  color: #28323b;
+  background-color: #fff;
+  border: 1px solid #c8ced5;
+  border-radius: 0.375rem;
+  box-shadow: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-fields .form-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #344054;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-fields .form-control:focus {
+  color: #28323b;
+  background-color: #fff;
+  border-color: #74808c;
+  box-shadow: 0 0 0 3px rgba(52, 64, 84, 0.12);
+}
+
+.admin-fields .form-control.is-invalid,
+.form-control.is-invalid {
+  border-color: #c83f3f !important;
+  background-image: none !important;
+  box-shadow: 0 0 0 1px rgba(200, 63, 63, 0.12) !important;
+}
+
+.field-error {
+  display: block;
+  margin-top: 0.3rem;
+  color: #b42318;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.field-error span {
+  display: block;
+}
+
+.field-error span + span {
+  margin-top: 0.15rem;
+}
+
+.form-error-message {
+  margin: 0.35rem 0 0;
+  color: #b42318;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.input-group.input-group-outline.is-invalid .form-control {
+  border-color: #c83f3f !important;
+  border-top-color: transparent !important;
+  box-shadow: inset 1px 0 #c83f3f, inset -1px 0 #c83f3f, inset 0 -1px #c83f3f !important;
+}
+
+.input-group.input-group-outline.is-invalid .form-label:before,
+.input-group.input-group-outline.is-invalid .form-label:after {
+  border-top-color: #c83f3f;
+}
+
+.admin-fields textarea.form-control {
+  min-height: 12rem;
+  resize: vertical;
+}
+
+.admin-fields input[type="file"].form-control {
+  min-height: 2.625rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.admin-fields input[type="file"].form-control::file-selector-button {
+  padding: 0.5rem 0.75rem;
+  margin: -0.5rem 0.75rem -0.5rem -0.75rem;
+  color: #344054;
+  background: #f3f4f5;
+  border: 0;
+  border-right: 1px solid #c8ced5;
+  border-radius: 0.375rem 0 0 0.375rem;
+  cursor: pointer;
+}
+
+.admin-fields input[type="file"].form-control::file-selector-button:hover {
+  background: #e9ebed;
+}
+
+.admin-form-errors {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.125rem;
+  color: #592b2a;
+  background: #fff7f6;
+  border: 1px solid #efcfcc;
+  border-left: 4px solid #c84b45;
+  border-radius: 0.375rem;
+}
+
+.admin-form-errors strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #492322;
+  font-size: 0.95rem;
+}
+
+.admin-form-errors ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.admin-form-errors li + li {
+  margin-top: 0.2rem;
+}
+
+.admin-form-button {
+  display: inline-flex;
+  min-height: 2.625rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid transparent !important;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-form-button-primary {
+  color: #fff !important;
+  background: #252b33 !important;
+  border-color: #252b33 !important;
+}
+
+.admin-form-button-primary:hover,
+.admin-form-button-primary:focus {
+  color: #fff !important;
+  background: #111820 !important;
+  border-color: #111820 !important;
+}
+
+.admin-form-button-secondary {
+  color: #344054 !important;
+  background: #fff !important;
+  border-color: #c8ced5 !important;
+}
+
+.admin-form-button-secondary:hover,
+.admin-form-button-secondary:focus {
+  color: #202833 !important;
+  background: #f5f6f7 !important;
+  border-color: #9aa3ad !important;
+}
+
+.admin-form-button:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(52, 64, 84, 0.18);
+}

@@ -22,6 +22,50 @@
 
 class Cart
 {
+    /** Merge a guest cart into the signed-in customer's saved cart. */
+    public static function restoreForUser(Database $db, $userId)
+    {
+        $cart = $_SESSION['cart'] ?? [];
+        $savedItems = $db->fetchAll(
+            'SELECT product_id, quantity FROM cart WHERE user_id = ?',
+            [(int) $userId],
+            'i'
+        );
+
+        foreach ($savedItems as $item) {
+            $productId = (int) $item['product_id'];
+            $cart[$productId] = (int) ($cart[$productId] ?? 0) + (int) $item['quantity'];
+        }
+
+        if (!empty($cart)) {
+            $ids = array_map('intval', array_keys($cart));
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $products = $db->fetchAll(
+                "SELECT id, stock FROM products WHERE id IN ($placeholders) AND status = 1",
+                $ids,
+                str_repeat('i', count($ids))
+            );
+            $stockById = [];
+            foreach ($products as $product) {
+                $stockById[(int) $product['id']] = (int) $product['stock'];
+            }
+
+            foreach ($cart as $productId => $quantity) {
+                $productId = (int) $productId;
+                if (empty($stockById[$productId])) {
+                    unset($cart[$productId]);
+                    continue;
+                }
+                $cart[$productId] = min((int) $quantity, $stockById[$productId]);
+            }
+        }
+
+        $_SESSION['cart'] = $cart;
+        foreach ($cart as $productId => $quantity) {
+            self::persistItem($db, $userId, $productId, $quantity);
+        }
+    }
+
     /** Returns cart rows with full product info, quantity, and subtotal. */
     public static function getItems(Database $db)
     {
@@ -96,11 +140,12 @@ class Cart
         }
 
         $_SESSION['cart'][$productId] = $newQty;
+        self::persistItem($db, Session::get('customer_id'), $productId, $newQty);
         return true;
     }
 
     /** Sets an exact quantity (used by the cart page's quantity inputs). Removes the line if 0 or less. */
-    public static function updateItem($productId, $qty)
+    public static function updateItem($productId, $qty, ?Database $db = null)
     {
         $productId = (int) $productId;
         $qty = (int) $qty;
@@ -110,15 +155,49 @@ class Cart
         } else {
             $_SESSION['cart'][$productId] = $qty;
         }
+        if ($db) {
+            self::persistItem($db, Session::get('customer_id'), $productId, $qty);
+        }
     }
 
-    public static function removeItem($productId)
+    public static function removeItem($productId, ?Database $db = null)
     {
-        unset($_SESSION['cart'][(int) $productId]);
+        $productId = (int) $productId;
+        unset($_SESSION['cart'][$productId]);
+        if ($db) {
+            self::persistItem($db, Session::get('customer_id'), $productId, 0);
+        }
     }
 
-    public static function clearCart()
+    public static function clearCart(?Database $db = null)
     {
+        $userId = Session::get('customer_id');
+        if ($db && $userId) {
+            $db->execute('DELETE FROM cart WHERE user_id = ?', [(int) $userId], 'i');
+        }
         unset($_SESSION['cart']);
+    }
+
+    private static function persistItem(Database $db, $userId, $productId, $quantity)
+    {
+        if (!$userId) {
+            return;
+        }
+
+        if ((int) $quantity <= 0) {
+            $db->execute(
+                'DELETE FROM cart WHERE user_id = ? AND product_id = ?',
+                [(int) $userId, (int) $productId],
+                'ii'
+            );
+            return;
+        }
+
+        $db->execute(
+            'INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE quantity = VALUES(quantity), updated_at = CURRENT_TIMESTAMP',
+            [(int) $userId, (int) $productId, (int) $quantity],
+            'iii'
+        );
     }
 }

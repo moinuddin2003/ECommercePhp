@@ -62,25 +62,25 @@ require __DIR__ . '/../../includes/admin-header.php';
             </div>
             <div class="card-body">
                 <?php if (!empty($errors)): ?>
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            <?php foreach ($errors as $error): ?>
-                                <li><?php echo htmlspecialchars($error); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
+                    <?php foreach (['general'] as $summaryField): ?>
+                        <?php if (isset($errors[$summaryField])): ?>
+                            <p class="form-error-message" role="alert"><?php echo htmlspecialchars($errors[$summaryField]); ?></p>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 <?php endif; ?>
 
-                <form action="create.php" method="post" enctype="multipart/form-data">
-                    <div class="input-group input-group-outline my-3">
-                        <label class="form-label">Category Name</label>
-                        <input type="text" name="name" class="form-control"
-                            value="<?php echo htmlspecialchars($name); ?>" required>
+                <form action="create.php" method="post" enctype="multipart/form-data" class="admin-fields">
+                    <div class="mb-3">
+                        <label class="form-label" for="category-name">Category name</label>
+                        <input type="text" name="name" class="form-control<?php echo Validator::fieldClass($errors, 'name'); ?>" id="category-name"<?php echo Validator::fieldAttributes($errors, 'name'); ?>
+                            value="<?php echo htmlspecialchars($name); ?>">
+                        <?php echo Validator::fieldErrorMarkup($errors, 'name'); ?>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Image (optional, max 2MB)</label>
-                        <input type="file" name="image" class="form-control" accept="image/*">
+                        <label class="form-label" for="category-image">Image (optional, max 2MB)</label>
+                        <input type="file" name="image" id="category-image" class="form-control<?php echo Validator::fieldClass($errors, 'image'); ?>" accept="image/*"<?php echo Validator::fieldAttributes($errors, 'image'); ?>>
+                        <?php echo Validator::fieldErrorMarkup($errors, 'image'); ?>
                     </div>
 
                     <div class="form-check form-switch mb-3">
@@ -88,8 +88,9 @@ require __DIR__ . '/../../includes/admin-header.php';
                         <label class="form-check-label" for="status">Active (visible in store)</label>
                     </div>
 
-                    <button type="submit" class="btn bg-gradient-dark">Create Category</button>
-                    <a href="index.php" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn admin-form-button admin-form-button-primary">Create
+                        category</button>
+                    <a href="index.php" class="btn admin-form-button admin-form-button-secondary">Cancel</a>
                 </form>
             </div>
         </div>

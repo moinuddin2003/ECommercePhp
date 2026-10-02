@@ -46,6 +46,7 @@ function navActive($key, $activeNav)
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link id="pagestyle" href="<?php echo $adminRoot; ?>assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+    <link href="<?php echo $adminRoot; ?>assets/css/admin-forms.css?v=1.2.0" rel="stylesheet" />
     <?php if (!empty($includeCharts)): ?>
         <script src="<?php echo $adminRoot; ?>assets/js/plugins/chartjs.min.js"></script>
     <?php endif; ?>

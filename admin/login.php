@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $errors['general'] = $result['message'];
+    $errors['password'] = $result['message'];
 } else {
     $errors = $v->errors();
 }
@@ -61,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link id="pagestyle" href="assets/css/material-dashboard.css?v=3.2.0" rel="stylesheet" />
+    <link href="assets/css/admin-forms.css?v=1.2.0" rel="stylesheet" />
 </head>
 
 <body class="bg-gray-100">
@@ -78,24 +79,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                             </div>
                             <div class="card-body">
-                                <?php if (!empty($errors)): ?>
-                                    <div class="alert alert-danger text-white">
-                                        <?php foreach ($errors as $error): ?>
-                                            <div><?php echo htmlspecialchars($error); ?></div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-
                                 <form role="form" method="post" action="login.php">
-                                    <div class="input-group input-group-outline my-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" name="email" class="form-control"
+                                    <div class="input-group input-group-outline my-3<?php echo Validator::fieldClass($errors, 'email'); ?>">
+                                        <label class="form-label" for="admin-email">Email</label>
+                                        <input type="email" id="admin-email" name="email" class="form-control<?php echo Validator::fieldClass($errors, 'email'); ?>"<?php echo Validator::fieldAttributes($errors, 'email'); ?>
                                             value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
                                     </div>
-                                    <div class="input-group input-group-outline mb-3">
-                                        <label class="form-label">Password</label>
-                                        <input type="password" name="password" class="form-control">
+                                    <?php echo Validator::fieldErrorMarkup($errors, 'email'); ?>
+                                    <div class="input-group input-group-outline mb-3<?php echo Validator::fieldClass($errors, 'password'); ?>">
+                                        <label class="form-label" for="admin-password">Password</label>
+                                        <input type="password" id="admin-password" name="password" class="form-control<?php echo Validator::fieldClass($errors, 'password'); ?>"<?php echo Validator::fieldAttributes($errors, 'password'); ?>>
                                     </div>
+                                    <?php echo Validator::fieldErrorMarkup($errors, 'password'); ?>
                                     <div class="text-center">
                                         <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Sign
                                             in</button>
@@ -112,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/js/core/popper.min.js"></script>
     <script src="assets/js/core/bootstrap.min.js"></script>
     <script src="assets/js/material-dashboard.min.js?v=3.2.0"></script>
+    <script src="../public/assets/js/inline-validation.js?v=1.1.0"></script>
     <script>
         document.querySelectorAll('.input-group-outline').forEach(function (group) {
             var input = group.querySelector('.form-control');

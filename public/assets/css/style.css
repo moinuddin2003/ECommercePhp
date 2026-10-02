@@ -6084,7 +6084,17 @@ p {
 .product.product-2 .product-media {
   margin-bottom: 0;
 }
-.storefront-product-body {
+/* SPECIFICITY NOTE
+ * Molla's own stylesheet defines these two rules AFTER this block:
+ *     .product-body                        { padding: 1.6rem 2rem }
+ *     .product.product-2 .product-body     { padding-bottom: 0.4rem }
+ * The second one is far more specific, so it used to win and squeeze the
+ * bottom padding down to 0.4rem. Combined with .product-card-footer
+ * (margin-top:auto) that pinned the "Add to cart" button flat against
+ * the card's bottom border. The selectors below deliberately repeat the
+ * competing classes so the intended padding actually wins. */
+.product-body.storefront-product-body,
+.product.product-2 .product-body.storefront-product-body {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -9131,6 +9141,48 @@ select.form-control:not([size]):not([multiple]) {
 .form-control::placeholder {
   color: #777;
 }
+
+.form-control.is-invalid,
+.custom-control-input.is-invalid {
+  border-color: #c83f3f !important;
+  background-image: none !important;
+  box-shadow: 0 0 0 1px rgba(200, 63, 63, 0.12) !important;
+}
+
+.custom-control-input.is-invalid + .custom-control-label::before {
+  border-color: #c83f3f;
+  box-shadow: 0 0 0 1px rgba(200, 63, 63, 0.12);
+}
+
+.field-error {
+  display: block;
+  margin-top: 0.3rem;
+  color: #b42318;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.field-error span {
+  display: block;
+}
+
+.field-error span + span {
+  margin-top: 0.15rem;
+}
+
+.form-error-message {
+  margin: 0.35rem 0 0;
+  color: #b42318;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.accordion-summary.is-invalid {
+  padding: 0.75rem;
+  border: 1px solid #c83f3f;
+  border-radius: 0.25rem;
+}
+
 textarea.form-control {
   min-height: 130px;
   padding-top: 1.1rem;

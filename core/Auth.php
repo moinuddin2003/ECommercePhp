@@ -207,6 +207,11 @@ class Auth
         Session::set($prefix . 'name', $user['name']);
         Session::set($prefix . 'role', $user['role']);
 
+        if ($area === 'customer') {
+            require_once __DIR__ . '/Cart.php';
+            Cart::restoreForUser($this->db, $user['id']);
+        }
+
         return ['success' => true, 'message' => 'Logged in.'];
     }
 
@@ -227,6 +232,9 @@ class Auth
         Session::remove($prefix . 'id');
         Session::remove($prefix . 'name');
         Session::remove($prefix . 'role');
+        if ($area !== 'admin') {
+            Session::remove('cart');
+        }
     }
 
     /* ==================================================================

@@ -3,6 +3,13 @@ config/database.php
 .env
 *.env
 
+# Local database folder (schema.sql + any db dumps).
+# NOTE: this is the only copy of the schema/seed data — back it up
+# somewhere outside git before relying on this ignore rule.
+database/
+*.sql
+*.sql.zip
+
 # User Uploads (Ignore uploaded product/category images, but keep folders)
 public/uploads/products/*
 !public/uploads/products/.gitkeep

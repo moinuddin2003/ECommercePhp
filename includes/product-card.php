@@ -17,7 +17,10 @@
  * (category name is optional — pass 'category_name' if you have it).
  */
 
+require_once __DIR__ . '/../core/ProductImages.php';
+
 $inStock = (int) $product['stock'] > 0;
+$hasImage = !empty($product['image']);
 ?>
 <div class="product product-2">
     <figure class="product-media">
@@ -26,8 +29,15 @@ $inStock = (int) $product['stock'] > 0;
         <?php endif; ?>
 
         <a href="product-detail.php?slug=<?php echo urlencode($product['slug']); ?>" class="product-image-link">
-            <img src="uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
-                alt="<?php echo htmlspecialchars($product['name']); ?>" class="product-image">
+            <?php if ($hasImage): ?>
+                <img src="<?php echo htmlspecialchars(ProductImages::url($product['id'], $product['image'])); ?>"
+                    alt="<?php echo htmlspecialchars($product['name']); ?>" class="product-image">
+            <?php else: ?>
+                <div class="product-image d-flex align-items-center justify-content-center bg-gray-100"
+                    style="min-height: 220px;">
+                    <span class="text-secondary text-sm">No image</span>
+                </div>
+            <?php endif; ?>
         </a>
     </figure><!-- End .product-media -->
 

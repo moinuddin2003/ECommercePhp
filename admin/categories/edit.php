@@ -78,13 +78,11 @@ require __DIR__ . '/../../includes/admin-header.php';
             </div>
             <div class="card-body">
                 <?php if (!empty($errors)): ?>
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            <?php foreach ($errors as $error): ?>
-                                <li><?php echo htmlspecialchars($error); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
+                    <?php foreach (['general'] as $summaryField): ?>
+                        <?php if (isset($errors[$summaryField])): ?>
+                            <p class="form-error-message" role="alert"><?php echo htmlspecialchars($errors[$summaryField]); ?></p>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 <?php endif; ?>
 
                 <?php if ($category['image']): ?>
@@ -92,20 +90,23 @@ require __DIR__ . '/../../includes/admin-header.php';
                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" class="mb-3">
                 <?php endif; ?>
 
-                <form action="edit.php?id=<?php echo (int) $id; ?>" method="post" enctype="multipart/form-data">
+                <form action="edit.php?id=<?php echo (int) $id; ?>" method="post" enctype="multipart/form-data"
+                    class="admin-fields">
                     <input type="hidden" name="id" value="<?php echo (int) $id; ?>">
 
 
-                    <div class="input-group input-group-outline my-3 <?php echo !empty($name) ? 'is-filled' : ''; ?>">
-                        <label class="form-label">Category Name</label>
-                        <input type="text" name="name" class="form-control"
-                            value="<?php echo htmlspecialchars($name); ?>" required>
+                    <div class="mb-3">
+                        <label class="form-label" for="category-name">Category name</label>
+                        <input type="text" name="name" id="category-name" class="form-control<?php echo Validator::fieldClass($errors, 'name'); ?>"<?php echo Validator::fieldAttributes($errors, 'name'); ?>
+                            value="<?php echo htmlspecialchars($name); ?>">
+                        <?php echo Validator::fieldErrorMarkup($errors, 'name'); ?>
                     </div>
 
 
                     <div class="mb-3">
-                        <label class="form-label">Replace Image (optional, max 2MB)</label>
-                        <input type="file" name="image" class="form-control" accept="image/*">
+                        <label class="form-label" for="category-image">Replace image (optional, max 2MB)</label>
+                        <input type="file" name="image" id="category-image" class="form-control<?php echo Validator::fieldClass($errors, 'image'); ?>" accept="image/*"<?php echo Validator::fieldAttributes($errors, 'image'); ?>>
+                        <?php echo Validator::fieldErrorMarkup($errors, 'image'); ?>
                         <small class="text-muted">Leave empty to keep the current image.</small>
                     </div>
 
@@ -114,8 +115,8 @@ require __DIR__ . '/../../includes/admin-header.php';
                         <label class="form-check-label" for="status">Active (visible in store)</label>
                     </div>
 
-                    <button type="submit" class="btn bg-gradient-dark">Save Changes</button>
-                    <a href="index.php" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn admin-form-button admin-form-button-primary">Save changes</button>
+                    <a href="index.php" class="btn admin-form-button admin-form-button-secondary">Cancel</a>
                 </form>
             </div>
         </div>

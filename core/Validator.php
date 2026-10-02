@@ -86,4 +86,38 @@ class Validator
     {
         return $this->errors[$field] ?? null;
     }
+
+    public static function fieldClass(array $errors, $field)
+    {
+        return isset($errors[$field]) ? ' is-invalid' : '';
+    }
+
+    public static function fieldAttributes(array $errors, $field)
+    {
+        if (!isset($errors[$field])) {
+            return '';
+        }
+
+        $errorId = htmlspecialchars($field . '-error', ENT_QUOTES, 'UTF-8');
+        return ' aria-invalid="true" aria-describedby="' . $errorId . '"';
+    }
+
+    public static function fieldErrorMarkup(array $errors, $field)
+    {
+        if (!isset($errors[$field])) {
+            return '';
+        }
+
+        $messages = array_filter((array) $errors[$field], 'is_string');
+        if (empty($messages)) {
+            return '';
+        }
+
+        $errorId = htmlspecialchars($field . '-error', ENT_QUOTES, 'UTF-8');
+        $markup = '<div class="field-error" id="' . $errorId . '" role="alert">';
+        foreach ($messages as $message) {
+            $markup .= '<span>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</span>';
+        }
+        return $markup . '</div>';
+    }
 }

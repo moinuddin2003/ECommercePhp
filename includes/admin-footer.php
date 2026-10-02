@@ -26,6 +26,7 @@ $includeCharts = $includeCharts ?? false;
     }
 </script>
 <script src="<?php echo $adminRoot; ?>assets/js/material-dashboard.min.js?v=3.2.0"></script>
+<script src="<?php echo $adminRoot; ?>../public/assets/js/inline-validation.js?v=1.1.0"></script>
 </body>
 
 </html>

@@ -23,7 +23,7 @@
                     <form action="#">
                         <div class="input-group input-group-round">
                             <input type="email" class="form-control form-control-white"
-                                placeholder="Enter your Email Address" aria-label="Email Adress" required>
+                                placeholder="Enter your Email Address" aria-label="Email Adress">
                             <div class="input-group-append">
                                 <button class="btn btn-primary" type="submit"><span>Subscribe</span><i
                                         class="icon-long-arrow-right"></i></button>
@@ -118,8 +118,8 @@
 
         <form action="#" method="get" class="mobile-search">
             <label for="mobile-search" class="sr-only">Search</label>
-            <input type="search" class="form-control" name="mobile-search" id="mobile-search" placeholder="Search in..."
-                required>
+            <input type="search" class="form-control" name="mobile-search" id="mobile-search"
+                placeholder="Search in...">
             <button class="btn btn-primary" type="submit"><i class="icon-search"></i></button>
         </form>
 
@@ -201,14 +201,13 @@
                                 <form action="login.php" method="POST">
                                     <div class="form-group">
                                         <label for="singin-email">Email address *</label>
-                                        <input type="email" class="form-control" id="singin-email" name="email"
-                                            required>
+                                        <input type="email" class="form-control" id="singin-email" name="email">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-group">
                                         <label for="singin-password">Password *</label>
-                                        <input type="password" class="form-control" id="singin-password" name="password"
-                                            required>
+                                        <input type="password" class="form-control" id="singin-password"
+                                            name="password">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-footer">
@@ -232,25 +231,24 @@
                                 <form action="register.php" method="POST">
                                     <div class="form-group">
                                         <label for="register-name">Full name *</label>
-                                        <input type="text" class="form-control" id="register-name" name="name" required>
+                                        <input type="text" class="form-control" id="register-name" name="name">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-group">
                                         <label for="register-email">Your email address *</label>
-                                        <input type="email" class="form-control" id="register-email" name="email"
-                                            required>
+                                        <input type="email" class="form-control" id="register-email" name="email">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-group">
                                         <label for="register-password">Password *</label>
                                         <input type="password" class="form-control" id="register-password"
-                                            name="password" required>
+                                            name="password">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-group">
                                         <label for="register-confirm-password">Confirm password *</label>
                                         <input type="password" class="form-control" id="register-confirm-password"
-                                            name="confirm_password" required>
+                                            name="confirm_password">
                                     </div><!-- End .form-group -->
 
                                     <div class="form-footer">
@@ -261,7 +259,7 @@
 
                                         <div class="custom-control custom-checkbox">
                                             <input type="checkbox" class="custom-control-input" id="register-policy"
-                                                required>
+                                                name="accept_policy">
                                             <label class="custom-control-label" for="register-policy">I agree to the <a
                                                     href="#">privacy policy</a> *</label>
                                         </div><!-- End .custom-checkbox -->
@@ -287,6 +285,7 @@
 <script src="assets/js/jquery.plugin.min.js"></script>
 <script src="assets/js/jquery.magnific-popup.min.js"></script>
 <script src="assets/js/jquery.countdown.min.js"></script>
+<script src="assets/js/inline-validation.js?v=1.1.0"></script>
 <!-- Main JS File -->
 <script src="assets/js/main.js"></script>
 <script src="assets/js/demos/demo-4.js"></script>

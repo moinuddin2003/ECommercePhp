@@ -19,6 +19,7 @@ require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Session.php';
 require_once __DIR__ . '/../core/Auth.php';
 require_once __DIR__ . '/../core/Cart.php';
+require_once __DIR__ . '/../core/ProductImages.php';
 
 Session::start();
 $db = new Database($conn);
@@ -40,7 +41,7 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($action === 'remove') {
     $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
-    Cart::removeItem($id);
+    Cart::removeItem($id, $db);
     Session::flash('success', 'Item removed from cart.');
     header('Location: cart.php');
     exit;
@@ -51,7 +52,7 @@ if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $quantities = $_POST['quantity'] ?? [];
 
     foreach ($ids as $i => $productId) {
-        Cart::updateItem($productId, $quantities[$i] ?? 0);
+        Cart::updateItem($productId, $quantities[$i] ?? 0, $db);
     }
 
     Session::flash('success', 'Cart updated.');
@@ -60,7 +61,7 @@ if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($action === 'clear') {
-    Cart::clearCart();
+    Cart::clearCart($db);
     header('Location: cart.php');
     exit;
 }
@@ -117,7 +118,7 @@ require __DIR__ . '/../includes/header.php';
                                 <tr>
                                     <td>
                                         <div class="cart-product-cell">
-                                            <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                                            <img src="<?php echo htmlspecialchars(ProductImages::url($item['id'], $item['image'])); ?>"
                                                 alt="<?php echo htmlspecialchars($item['name']); ?>" width="60" class="mr-3">
                                             <a
                                                 href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"><?php echo htmlspecialchars($item['name']); ?></a>

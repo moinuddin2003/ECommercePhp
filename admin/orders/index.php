@@ -79,7 +79,7 @@ if ($flashSuccess): ?>
                     style="border: 1px solid #d2d6da; border-radius: 0.5rem; min-height: 42px;"
                     placeholder="Search order or customer..." value="<?php echo htmlspecialchars($search); ?>"></div>
             <div class="col-md-4"><label for="order-status-filter" class="form-label text-sm mb-1">Filter by
-                    status</label><select id="order-status-filter" name="status" class="form-control px-3"
+                    status</label><select id="order-status-filter" name="status" class="form-select px-3"
                     style="border: 1px solid #d2d6da; border-radius: 0.5rem; min-height: 42px;">
                     <option value="">All statuses</option>
                     <?php foreach (['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as $status): ?>
@@ -128,7 +128,7 @@ if ($flashSuccess): ?>
                                             name="action" value="update_status"><input type="hidden" name="id"
                                             value="<?php echo (int) $order['id']; ?>"><input type="hidden" name="csrf_token"
                                             value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select
-                                            name="order_status" class="form-control form-control-sm px-2"
+                                            name="order_status" class="form-select form-select-sm px-2"
                                             style="width: 9rem; min-width: 9rem; flex: 0 0 9rem; border: 1px solid #d2d6da; border-radius: 0.35rem;"><?php foreach ($allowedStatuses as $status): ?>
                                                 <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>             <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
                                         </select><button type="submit"

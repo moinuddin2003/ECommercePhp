@@ -31,6 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
+    if (!isset($_POST['accept_policy'])) {
+        $errors['accept_policy'] = 'Please accept the privacy policy.';
+    }
 
     $v = new Validator();
     $v->required($name, 'name')
@@ -40,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ->minLength($password, 'password', 6)
         ->matches($confirmPassword, $password, 'confirm_password', 'Passwords do not match');
 
-    if ($v->passes()) {
+    if ($v->passes() && empty($errors)) {
         $result = $auth->register($name, $email, $password);
 
         if ($result['success']) {
@@ -51,9 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $errors['general'] = $result['message'];
+        $errors['email'] = $result['message'];
     } else {
-        $errors = $v->errors();
+        $errors = array_merge($v->errors(), $errors);
     }
 }
 
@@ -66,40 +69,41 @@ require __DIR__ . '/../includes/header.php';
         <div class="col-md-6">
             <h1 class="title text-center mb-4">Create an Account</h1>
 
-            <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        <?php foreach ($errors as $error): ?>
-                            <li><?php echo htmlspecialchars($error); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
             <form
                 action="register.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>"
                 method="post">
                 <div class="form-group">
                     <label for="name">Full Name</label>
-                    <input type="text" id="name" name="name" class="form-control"
-                        value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>" required>
+                    <input type="text" id="name" name="name" class="form-control<?php echo Validator::fieldClass($errors, 'name'); ?>"<?php echo Validator::fieldAttributes($errors, 'name'); ?>
+                        value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>">
+                    <?php echo Validator::fieldErrorMarkup($errors, 'name'); ?>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-control"
-                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                    <input type="email" id="email" name="email" class="form-control<?php echo Validator::fieldClass($errors, 'email'); ?>"<?php echo Validator::fieldAttributes($errors, 'email'); ?>
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                    <?php echo Validator::fieldErrorMarkup($errors, 'email'); ?>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
+                    <input type="password" id="password" name="password" class="form-control<?php echo Validator::fieldClass($errors, 'password'); ?>"<?php echo Validator::fieldAttributes($errors, 'password'); ?>>
+                    <?php echo Validator::fieldErrorMarkup($errors, 'password'); ?>
                     <small class="mb-3 mt-2 form-text text-muted">At least 6 characters.</small>
                 </div>
 
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control<?php echo Validator::fieldClass($errors, 'confirm_password'); ?>"<?php echo Validator::fieldAttributes($errors, 'confirm_password'); ?>>
+                    <?php echo Validator::fieldErrorMarkup($errors, 'confirm_password'); ?>
+                </div>
+
+                <div class="form-group custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input<?php echo Validator::fieldClass($errors, 'accept_policy'); ?>" id="accept-policy" name="accept_policy"<?php echo Validator::fieldAttributes($errors, 'accept_policy'); ?>
+                        <?php echo isset($_POST['accept_policy']) ? 'checked' : ''; ?>>
+                    <label class="custom-control-label" for="accept-policy">I agree to the privacy policy.</label>
+                    <?php echo Validator::fieldErrorMarkup($errors, 'accept_policy'); ?>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block btn-round">

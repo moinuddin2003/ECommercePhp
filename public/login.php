@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $errors['general'] = $result['message'];
+        $errors['password'] = $result['message'];
     } else {
         $errors = $v->errors();
     }
@@ -57,28 +57,20 @@ require __DIR__ . '/../includes/header.php';
         <div class="col-md-6">
             <h1 class="title text-center mb-4">Sign In</h1>
 
-            <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        <?php foreach ($errors as $error): ?>
-                            <li><?php echo htmlspecialchars($error); ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
             <form
                 action="login.php<?php echo $redirectTo !== 'index.php' ? '?redirect=' . urlencode($redirectTo) : ''; ?>"
                 method="post">
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" class="form-control"
-                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+                    <input type="email" id="email" name="email" class="form-control<?php echo Validator::fieldClass($errors, 'email'); ?>"<?php echo Validator::fieldAttributes($errors, 'email'); ?>
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                    <?php echo Validator::fieldErrorMarkup($errors, 'email'); ?>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control" required>
+                    <input type="password" id="password" name="password" class="form-control<?php echo Validator::fieldClass($errors, 'password'); ?>"<?php echo Validator::fieldAttributes($errors, 'password'); ?>>
+                    <?php echo Validator::fieldErrorMarkup($errors, 'password'); ?>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block btn-round">

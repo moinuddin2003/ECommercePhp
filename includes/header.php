@@ -11,6 +11,7 @@
  */
 
 require_once __DIR__ . '/../core/Cart.php';
+require_once __DIR__ . '/../core/ProductImages.php';
 
 Session::start();
 $pageTitle = $pageTitle ?? 'Home';
@@ -153,7 +154,7 @@ $headerFlashError = Session::flash('error');
                                     <label for="q" class="sr-only">Search</label>
                                     <button class="btn btn-primary" type="submit"><i class="icon-search"></i></button>
                                     <input type="search" class="form-control" name="q" id="q"
-                                        placeholder="Search product ..." required>
+                                        placeholder="Search product ...">
                                 </div><!-- End .header-search-wrapper -->
                             </form>
                         </div><!-- End .header-search -->
@@ -193,7 +194,7 @@ $headerFlashError = Session::flash('error');
                                                 <figure class="product-image-container">
                                                     <a href="product-detail.php?slug=<?php echo urlencode($item['slug']); ?>"
                                                         class="product-image">
-                                                        <img src="uploads/products/<?php echo htmlspecialchars($item['image']); ?>"
+                                                        <img src="<?php echo htmlspecialchars(ProductImages::url($item['id'], $item['image'])); ?>"
                                                             alt="<?php echo htmlspecialchars($item['name']); ?>">
                                                     </a>
                                                 </figure>

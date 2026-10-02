@@ -44,7 +44,7 @@ if ($order && $order['payment_method'] === 'stripe' && $order['payment_status'] 
             && ($checkoutSession['currency'] ?? '') === 'usd'
             && completeStripeOrder($db, $conn, $checkoutSession)
         ) {
-            Cart::clearCart();
+            Cart::clearCart($db);
             $order = $db->fetchOne(
                 'SELECT * FROM orders WHERE order_number = ? AND user_id = ?',
                 [$orderNumber, Session::get('customer_id')],
@@ -67,6 +67,57 @@ if ($order) {
         'i'
     );
 }
+
+// ---- Everything the layout needs, derived once ----
+$orderCancelled = $order && $order['order_status'] === 'cancelled';
+$paymentConfirmed = $order
+    && !$orderCancelled
+    && ($order['payment_method'] === 'cod' || $order['payment_status'] === 'completed');
+
+// The 5-step tracker. Each step knows the statuses that count as "done"
+// and the ones that count as "current", so the bar always reflects the
+// real order_status instead of hard-coded check marks.
+$steps = [
+    ['label' => 'Placed', 'done' => true],
+    ['label' => 'Confirmed', 'done' => $paymentConfirmed],
+    ['label' => 'Processing', 'done' => in_array($order['order_status'] ?? '', ['processing', 'shipped', 'delivered'], true)],
+    ['label' => 'Shipped', 'done' => in_array($order['order_status'] ?? '', ['shipped', 'delivered'], true)],
+    ['label' => 'Delivered', 'done' => ($order['order_status'] ?? '') === 'delivered'],
+];
+
+// Find the step to highlight as "we are here".
+$currentStepIndex = 0;
+foreach ($steps as $i => $step) {
+    if (!$step['done']) {
+        $currentStepIndex = $i;
+        break;
+    }
+    $currentStepIndex = $i;
+}
+
+$totalQuantity = 0;
+$subtotalFromItems = 0.0;
+foreach ($items as $item) {
+    $totalQuantity += (int) $item['quantity'];
+    $subtotalFromItems += (float) $item['subtotal'];
+}
+
+// Shipping is not stored separately: total_amount is already the final
+// charged figure, so only show the breakdown when the numbers differ.
+$shippingFee = $subtotalFromItems > 0
+    ? max(0, (float) $order['total_amount'] - $subtotalFromItems)
+    : 0.0;
+
+$placedAt = !empty($order['created_at'])
+    ? date('F j, Y \a\t g:ia', strtotime($order['created_at']))
+    : '';
+
+// Estimated delivery is a simple business estimate shown to the customer.
+$estimatedDelivery = !empty($order['created_at'])
+    ? date('l, F j', strtotime($order['created_at'] . ' +4 days'))
+    : '';
+
+$statusTone = $orderCancelled ? 'danger' : ($paymentConfirmed ? 'success' : 'warning');
 
 $pageTitle = 'Order Confirmation';
 require __DIR__ . '/../includes/header.php';

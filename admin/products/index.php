@@ -16,6 +16,7 @@ require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Session.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Upload.php';
+require_once __DIR__ . '/../../core/ProductImages.php';
 
 Session::start();
 $db = new Database($conn);
@@ -23,14 +24,18 @@ Auth::requireAdmin('../login.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $id = (int) ($_POST['id'] ?? 0);
-    $product = $db->fetchOne('SELECT image FROM products WHERE id = ?', [$id], 'i');
 
     try {
-        $db->execute('DELETE FROM products WHERE id = ?', [$id], 'i');
+        // Delete the product FIRST. If the database refuses (because this
+        // product appears in a past order) we must NOT have deleted any
+        // image files, or we would end up with live products missing
+        // their pictures. So the order of these steps matters.
+        $db->execute('DELETE FROM products WHERE id = ?', [$id]);
 
-        if ($product) {
-            Upload::delete(__DIR__ . '/../../public/uploads/products', $product['image']);
-        }
+        // Only now that the row is really gone, remove every image file
+        // belonging to this product. (The old code deleted just the one
+        // image in products.image, leaving the rest as orphans.)
+        ProductImages::deleteAllForProduct($db, $id);
 
         Session::flash('success', 'Product deleted.');
     } catch (mysqli_sql_exception $e) {
@@ -75,7 +80,8 @@ $listParams[] = $offset;
 $listParams[] = $perPage;
 
 $products = $db->fetchAll(
-    "SELECT p.id, p.name, p.slug, p.price, p.stock, p.image, p.status, c.name AS category_name
+    "SELECT p.id, p.name, p.slug, p.price, p.stock, p.image, p.images, p.status,
+            c.name AS category_name
      FROM products p
      JOIN categories c ON c.id = p.category_id
      $where
@@ -118,7 +124,7 @@ require __DIR__ . '/../../includes/admin-header.php';
             </div>
             <div class="col-md-4">
                 <label for="product-category" class="form-label text-sm mb-1">Filter by category</label>
-                <select id="product-category" name="category" class="form-control px-3"
+                <select id="product-category" name="category" class="form-control form-select px-3"
                     style="border: 1px solid #d2d6da; border-radius: 0.5rem; min-height: 42px;">
                     <option value="0">All Categories</option>
                     <?php foreach ($allCategories as $cat): ?>
@@ -155,8 +161,13 @@ require __DIR__ . '/../../includes/admin-header.php';
                         <?php foreach ($products as $product): ?>
                             <tr>
                                 <td class="ps-3">
-                                    <img src="../../public/uploads/products/<?php echo htmlspecialchars($product['image']); ?>"
+                                    <img src="<?php echo htmlspecialchars(ProductImages::url($product['id'], $product['image'])); ?>"
                                         alt="" style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px;">
+                                    <span
+                                        class="badge badge-sm <?php echo count(ProductImages::decode($product['images'])) >= ProductImages::MIN_IMAGES ? 'bg-gradient-success' : 'bg-gradient-warning'; ?>"
+                                        title="Number of images for this product">
+                                        <?php echo count(ProductImages::decode($product['images'])); ?>
+                                    </span>
                                 </td>
                                 <td><?php echo htmlspecialchars($product['name']); ?></td>
                                 <td class="text-xs"><?php echo htmlspecialchars($product['category_name']); ?></td>
