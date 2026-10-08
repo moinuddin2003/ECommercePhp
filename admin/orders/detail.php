@@ -114,10 +114,11 @@ if ($flashSuccess): ?>
                         value="update_status"><input type="hidden" name="id" value="<?php echo $id; ?>"><input
                         type="hidden" name="csrf_token"
                         value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select name="order_status"
-                        class="form-control mb-3"><?php foreach ($allowedStatuses as $status): ?>
+                        class="form-control mb-3"
+                        onchange="this.form.submit()"><?php foreach ($allowedStatuses as $status): ?>
                             <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>     <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?>
                             </option><?php endforeach; ?>
-                    </select><button type="submit" class="btn bg-gradient-dark">Save Status</button></form>
+                    </select></form>
             </div>
         </div>
         <div class="card">

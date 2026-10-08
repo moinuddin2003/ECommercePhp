@@ -57,9 +57,9 @@
                         <h4 class="widget-title">Useful Links</h4><!-- End .widget-title -->
 
                         <ul class="widget-list">
-                            <li><a href="about.html">About Molla</a></li>
+                            <li><a href="about.html">About NexMart</a></li>
                             <li><a href="#">Our Services</a></li>
-                            <li><a href="#">How to shop on Molla</a></li>
+                            <li><a href="#">How to shop on NexMart</a></li>
                             <li><a href="faq.html">FAQ</a></li>
                             <li><a href="contact.html">Contact us</a></li>
                         </ul><!-- End .widget-list -->
@@ -98,7 +98,7 @@
 
     <div class="footer-bottom">
         <div class="container">
-            <p class="footer-copyright">Copyright © 2019 Molla Store. All Rights Reserved.</p>
+            <p class="footer-copyright">Copyright © 2019 NexMart Store. All Rights Reserved.</p>
             <!-- End .footer-copyright -->
             <figure class="footer-payments">
                 <img src="assets/images/payments.png" alt="Payment methods" width="272" height="20">
@@ -292,6 +292,6 @@
 </body>
 
 
-<!-- molla/index-4.html  22 Nov 2019 09:54:18 GMT -->
+<!-- NexMart/index-4.html  22 Nov 2019 09:54:18 GMT -->
 
 </html>

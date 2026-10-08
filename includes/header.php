@@ -37,7 +37,7 @@ $headerFlashError = Session::flash('error');
 <html lang="en">
 
 
-<!-- molla/index-4.html  22 Nov 2019 09:53:08 GMT -->
+<!-- NexMart/index-4.html  22 Nov 2019 09:53:08 GMT -->
 
 <head>
     <meta charset="UTF-8">
@@ -54,8 +54,8 @@ $headerFlashError = Session::flash('error');
     <link rel="manifest" href="assets/images/icons/site.html">
     <link rel="mask-icon" href="assets/images/favicon.svg" color="#666666">
     <link rel="shortcut icon" href="assets/images/favicon.svg">
-    <meta name="apple-mobile-web-app-title" content="Molla">
-    <meta name="application-name" content="Molla">
+    <meta name="apple-mobile-web-app-title" content="NexMart">
+    <meta name="application-name" content="NexMart">
     <meta name="msapplication-TileColor" content="#cc9966">
     <meta name="msapplication-config" content="assets/images/icons/browserconfig.xml">
     <meta name="theme-color" content="#ffffff">

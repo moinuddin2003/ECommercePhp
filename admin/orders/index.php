@@ -12,9 +12,11 @@ Auth::requireAdmin('../login.php');
 
 $allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_status') {
+    $returnQuery = array_intersect_key($_GET, array_flip(['status', 'q']));
+    $returnUrl = 'index.php' . ($returnQuery ? '?' . http_build_query($returnQuery) : '');
     if (!Session::validateCsrfToken($_POST['csrf_token'] ?? null)) {
         Session::flash('error', 'Your session expired. Please try again.');
-        header('Location: index.php');
+        header('Location: ' . $returnUrl);
         exit;
     }
 
@@ -33,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     } else {
         Session::flash('error', 'That status change is not allowed. Follow the next available step; paid orders require a refund before cancellation.');
     }
-    header('Location: index.php');
+    header('Location: ' . $returnUrl);
     exit;
 }
 
@@ -123,17 +125,16 @@ if ($flashSuccess): ?>
                                         class="text-secondary"><?php echo htmlspecialchars(paymentStatusLabel($order['payment_method'], $order['payment_status'], $order['order_status'])); ?></span>
                                 </td>
                                 <td>
-                                    <form action="index.php" method="post"
+                                    <form method="post"
                                         class="d-inline-flex align-items-center gap-2 flex-nowrap"><input type="hidden"
                                             name="action" value="update_status"><input type="hidden" name="id"
                                             value="<?php echo (int) $order['id']; ?>"><input type="hidden" name="csrf_token"
                                             value="<?php echo htmlspecialchars(Session::csrfToken()); ?>"><select
                                             name="order_status" class="form-select form-select-sm px-2"
-                                            style="width: 9rem; min-width: 9rem; flex: 0 0 9rem; border: 1px solid #d2d6da; border-radius: 0.35rem;"><?php foreach ($allowedStatuses as $status): ?>
+                                            style="width: 9rem; min-width: 9rem; flex: 0 0 9rem; border: 1px solid #d2d6da; border-radius: 0.35rem;"
+                                            onchange="this.form.submit()"><?php foreach ($allowedStatuses as $status): ?>
                                                 <option value="<?php echo $status; ?>" <?php echo $status === $order['order_status'] ? 'selected' : ''; ?>             <?php echo !canSetOrderStatus($order['payment_method'], $order['payment_status'], $status, $order['order_status']) ? 'disabled' : ''; ?>><?php echo ucfirst($status); ?></option><?php endforeach; ?>
-                                        </select><button type="submit"
-                                            class="btn btn-link text-primary text-xs font-weight-bold p-0 m-0"
-                                            style="flex: 0 0 auto; white-space: nowrap;">Save</button>
+                                        </select>
                                     </form>
                                 </td>
                             </tr><?php endforeach; ?>
